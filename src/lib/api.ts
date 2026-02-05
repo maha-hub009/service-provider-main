@@ -280,30 +280,36 @@ export async function apiVendorMyServices() {
 }
 
 export async function apiVendorCreateService(payload: Partial<ServiceDoc>) {
-  const res = await request<{ service: ServiceDoc }>(
+  const res = await request<ServiceDoc>(
     `/vendor/services`,
     { method: "POST", body: JSON.stringify(payload) },
     true
   );
-  return res.data.service;
+  return res.data;
 }
 
 export async function apiVendorUpdateService(id: string, payload: Partial<ServiceDoc>) {
-  const res = await request<{ service: ServiceDoc }>(
+  const res = await request<ServiceDoc>(
     `/vendor/services/${id}`,
-    { method: "PUT", body: JSON.stringify(payload) },
+    { method: "PATCH", body: JSON.stringify(payload) },
     true
   );
-  return res.data.service;
+  return res.data;
 }
 
 export async function apiVendorDeleteService(id: string) {
-  const res = await request<{ serviceId: string }>(
-    `/vendor/services/${id}`,
-    { method: "DELETE" },
-    true
-  );
-  return res.data.serviceId;
+  await request(`/vendor/services/${id}`, { method: "DELETE" }, true);
+}
+
+export async function apiVendorStats() {
+  const res = await request<{
+    activeServices: number;
+    totalBookings: number;
+    pendingBookings: number;
+    completedBookings: number;
+    recentBookings: Booking[];
+  }>(`/vendor/stats`, { method: "GET" }, true);
+  return res.data;
 }
 
 /* ---------------- ADMIN ---------------- */
@@ -461,4 +467,105 @@ export async function apiAIReply(threadId: string, text: string) {
   );
   return res.data.message;
 }
+
+/* ---------------- ADMIN SETTINGS ---------------- */
+
+export type AdminSettings = {
+  platformName: string;
+  tagline: string;
+  contactEmail: string;
+  contactPhone: string;
+  address: string;
+  currency: string;
+  timezone: string;
+  emailNotifications: boolean;
+  newBookingAlert: boolean;
+  vendorApprovalAlert: boolean;
+  paymentAlert: boolean;
+  weeklyReport: boolean;
+  monthlyReport: boolean;
+  platformFee: number;
+  minBookingAmount: number;
+  paymentMethods: string[];
+  autoPayouts: boolean;
+  payoutSchedule: string;
+  twoFactorAuth: boolean;
+  sessionTimeout: number;
+  passwordPolicy: string;
+  loginAttempts: number;
+  primaryColor: string;
+  accentColor: string;
+  darkMode: boolean;
+  showBanner: boolean;
+  bannerText: string;
+};
+
+export async function apiGetSettings() {
+  const res = await request<AdminSettings>(
+    `/admin/settings`,
+    { method: "GET" },
+    true
+  );
+  return res.data;
+}
+
+export async function apiUpdateGeneralSettings(data: any) {
+  const res = await request<AdminSettings>(
+    `/admin/settings/general`,
+    { method: "POST", body: JSON.stringify(data) },
+    true
+  );
+  return res.data;
+}
+
+export async function apiUpdateNotificationSettings(data: any) {
+  const res = await request<AdminSettings>(
+    `/admin/settings/notifications`,
+    { method: "POST", body: JSON.stringify(data) },
+    true
+  );
+  return res.data;
+}
+
+export async function apiUpdateCommissionSettings(data: any) {
+  const res = await request<AdminSettings>(
+    `/admin/settings/commission`,
+    { method: "POST", body: JSON.stringify(data) },
+    true
+  );
+  return res.data;
+}
+
+export async function apiUpdateSecuritySettings(data: any) {
+  const res = await request<AdminSettings>(
+    `/admin/settings/security`,
+    { method: "POST", body: JSON.stringify(data) },
+    true
+  );
+  return res.data;
+}
+
+export async function apiUpdateAppearanceSettings(data: any) {
+  const res = await request<AdminSettings>(
+    `/admin/settings/appearance`,
+    { method: "POST", body: JSON.stringify(data) },
+    true
+  );
+  return res.data;
+}
+
+export async function apiGetDashboardStats() {
+  const res = await request<{
+    totalUsers: number;
+    adminCount: number;
+    vendorCount: number;
+    customerCount: number;
+  }>(
+    `/admin/stats`,
+    { method: "GET" },
+    true
+  );
+  return res.data;
+}
+
 /* ---------------- END ---------------- */
