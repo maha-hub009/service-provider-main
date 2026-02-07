@@ -217,7 +217,11 @@ export async function apiListServices(params?: {
 }
 
 export async function apiGetService(id: string) {
-  const res = await request<{ service: ServiceDoc }>(`/services/${id}`, { method: "GET" }, false);
+  const res = await request<{ service: ServiceDoc }>(
+    `/services/${id}`,
+    { method: "GET" },
+    false
+  );
   return res.data.service;
 }
 
@@ -251,16 +255,33 @@ export async function apiCreateBooking(payload: {
 }
 
 export async function apiCustomerBookings() {
-  const res = await request<{ items: Booking[] }>("/bookings/my", { method: "GET" }, true);
-  return res.data.items.map((b) => ({ ...b, status: mapBackendStatusToFrontend(b.status) }));
+  const res = await request<{ items: Booking[] }>(
+    "/bookings/my",
+    { method: "GET" },
+    true
+  );
+  return res.data.items.map((b) => ({
+    ...b,
+    status: mapBackendStatusToFrontend(b.status),
+  }));
 }
 
 export async function apiVendorBookings() {
-  const res = await request<{ items: Booking[] }>("/vendor/bookings", { method: "GET" }, true);
-  return res.data.items.map((b) => ({ ...b, status: mapBackendStatusToFrontend(b.status) }));
+  const res = await request<{ items: Booking[] }>(
+    "/vendor/bookings",
+    { method: "GET" },
+    true
+  );
+  return res.data.items.map((b) => ({
+    ...b,
+    status: mapBackendStatusToFrontend(b.status),
+  }));
 }
 
-export async function apiVendorUpdateBookingStatus(bookingId: string, status: string) {
+export async function apiVendorUpdateBookingStatus(
+  bookingId: string,
+  status: string
+) {
   const backendStatus = mapFrontendStatusToBackend(status);
 
   const res = await request<{ booking: Booking }>(
@@ -269,13 +290,20 @@ export async function apiVendorUpdateBookingStatus(bookingId: string, status: st
     true
   );
 
-  return { ...res.data.booking, status: mapBackendStatusToFrontend(res.data.booking.status) };
+  return {
+    ...res.data.booking,
+    status: mapBackendStatusToFrontend(res.data.booking.status),
+  };
 }
 
 /* ---------------- VENDOR SERVICES ---------------- */
 
 export async function apiVendorMyServices() {
-  const res = await request<{ items: ServiceDoc[] }>(`/vendor/services`, { method: "GET" }, true);
+  const res = await request<{ items: ServiceDoc[] }>(
+    `/vendor/services`,
+    { method: "GET" },
+    true
+  );
   return res.data.items;
 }
 
@@ -288,7 +316,10 @@ export async function apiVendorCreateService(payload: Partial<ServiceDoc>) {
   return res.data.service;
 }
 
-export async function apiVendorUpdateService(id: string, payload: Partial<ServiceDoc>) {
+export async function apiVendorUpdateService(
+  id: string,
+  payload: Partial<ServiceDoc>
+) {
   const res = await request<{ service: ServiceDoc }>(
     `/vendor/services/${id}`,
     { method: "PUT", body: JSON.stringify(payload) },
@@ -320,13 +351,21 @@ export type AdminUserRow = {
   businessName?: string;
 };
 
-export async function apiAdminUsers(params?: { role?: string; status?: string; q?: string }) {
+export async function apiAdminUsers(params?: {
+  role?: string;
+  status?: string;
+  q?: string;
+}) {
   const sp = new URLSearchParams();
   if (params?.role) sp.set("role", params.role);
   if (params?.status) sp.set("status", params.status);
   if (params?.q) sp.set("q", params.q);
 
-  const res = await request<{ items: AdminUserRow[] }>(`/admin/users?${sp.toString()}`, { method: "GET" }, true);
+  const res = await request<{ items: AdminUserRow[] }>(
+    `/admin/users?${sp.toString()}`,
+    { method: "GET" },
+    true
+  );
   return res.data.items;
 }
 
@@ -351,7 +390,11 @@ export type AdminVendorRow = {
 };
 
 export async function apiAdminVendors() {
-  const res = await request<{ items: AdminVendorRow[] }>(`/admin/vendors`, { method: "GET" }, true);
+  const res = await request<{ items: AdminVendorRow[] }>(
+    `/admin/vendors`,
+    { method: "GET" },
+    true
+  );
   return res.data.items;
 }
 
@@ -363,7 +406,11 @@ export async function apiAdminUnverifyVendor(id: string) {
 }
 
 export async function apiAdminServices() {
-  const res = await request<{ items: ServiceDoc[] }>(`/admin/services`, { method: "GET" }, true);
+  const res = await request<{ items: ServiceDoc[] }>(
+    `/admin/services`,
+    { method: "GET" },
+    true
+  );
   return res.data.items;
 }
 
@@ -371,7 +418,11 @@ export async function apiAdminToggleService(id: string) {
   await request(`/admin/services/${id}/toggle`, { method: "PATCH" }, true);
 }
 
-export async function apiAdminBookings(params?: { status?: string; page?: number; limit?: number }) {
+export async function apiAdminBookings(params?: {
+  status?: string;
+  page?: number;
+  limit?: number;
+}) {
   const sp = new URLSearchParams();
   if (params?.status) sp.set("status", params.status);
   if (params?.page) sp.set("page", String(params.page));
@@ -387,28 +438,41 @@ export async function apiAdminBookings(params?: { status?: string; page?: number
 
   return {
     ...res.data,
-    items: res.data.items.map((b) => ({ ...b, status: mapBackendStatusToFrontend(b.status) })),
+    items: res.data.items.map((b) => ({
+      ...b,
+      status: mapBackendStatusToFrontend(b.status),
+    })),
   };
 }
 
-export async function apiAdminUpdateBookingStatus(bookingId: string, status: string) {
+export async function apiAdminUpdateBookingStatus(
+  bookingId: string,
+  status: string
+) {
   const backendStatus = mapFrontendStatusToBackend(status);
   const res = await request<{ booking: Booking }>(
     `/admin/bookings/${bookingId}/status`,
     { method: "PATCH", body: JSON.stringify({ status: backendStatus }) },
     true
   );
-  return { ...res.data.booking, status: mapBackendStatusToFrontend(res.data.booking.status) };
+  return {
+    ...res.data.booking,
+    status: mapBackendStatusToFrontend(res.data.booking.status),
+  };
 }
 
 /* ---------------- CATEGORIES (READ ONLY) ---------------- */
 
 export async function apiCategories() {
-  const res = await request<{ categories: any[] }>(`/meta/categories`, { method: "GET" }, false);
+  const res = await request<{ categories: any[] }>(
+    `/meta/categories`,
+    { method: "GET" },
+    false
+  );
   return res.data.categories;
 }
 
-/* ---------------- CHAT (already used) ---------------- */
+/* ---------------- CHAT ---------------- */
 
 export type ChatThread = {
   _id: string;
@@ -461,4 +525,112 @@ export async function apiAIReply(threadId: string, text: string) {
   );
   return res.data.message;
 }
+
+/* ---------------- SETTINGS (NEW) ---------------- */
+
+/**
+ * Admin workflow: Notifications / Appearance / General settings
+ * Vendor workflow: Vendor settings page
+ *
+ * Expected backend responses (recommended):
+ *  GET  /settings/:role -> { success:true, data:{ settings:{} } }
+ *  PUT  /settings/:role -> { success:true, data:{ settings:{} } }
+ */
+
+export type AppSettings = {
+  notifications?: boolean;
+  appearance?: "light" | "dark";
+  general?: string;
+
+  // vendor extras (if your backend stores it here)
+  businessName?: string;
+  phone?: string;
+  address?: string;
+  categories?: string[];
+};
+
+export async function apiGetSettings(role: "admin" | "vendor") {
+  const res = await request<{ settings: AppSettings }>(
+    `/settings/${role}`,
+    { method: "GET" },
+    true
+  );
+
+  // return real DB values (no forced defaults)
+  return res.data.settings || {};
+}
+
+export async function apiUpdateSettings(
+  role: "admin" | "vendor",
+  payload: AppSettings
+) {
+  const res = await request<{ settings: AppSettings }>(
+    `/settings/${role}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    true
+  );
+  return res.data.settings;
+}
+
+/* ---------------- REVIEWS (NEW) ---------------- */
+
+/**
+ * Customer can review & rate vendor ONLY after booking completed.
+ * Backend recommended:
+ *  POST /reviews -> { success:true, data:{ review:{} } }
+ *  GET  /vendor/reviews -> { success:true, data:{ items:[] } }
+ */
+
+export type ReviewDoc = {
+  _id: string;
+  booking: string;
+  vendor: string;
+  user: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+};
+
+export async function apiCreateReview(payload: {
+  bookingId: string;
+  rating: number;
+  comment?: string;
+}) {
+  const res = await request<{ review: ReviewDoc }>(
+    `/reviews`,
+    { method: "POST", body: JSON.stringify(payload) },
+    true
+  );
+  return res.data.review;
+}
+
+export async function apiVendorReviews() {
+  const res = await request<{ items: ReviewDoc[] }>(
+    `/vendor/reviews`,
+    { method: "GET" },
+    true
+  );
+  return res.data.items;
+}
+/* ---------------- VENDOR CHAT THREADS (NEW) ---------------- */
+export async function apiVendorChatThreads() {
+  const res = await request<{ items: ChatThread[] }>(
+    `/chat/vendor/threads`,
+    { method: "GET" },
+    true
+  );
+  return res.data.items;
+}
+
+
+/* ---------------- CHAT HELPERS (SAFE) ---------------- */
+
+/**
+ * Optional helper: avoids UI crash if thread doesn't exist yet.
+ * Your /chat/booking/:bookingId/thread endpoint should create if missing.
+ */
+export async function apiSafeThread(bookingId: string) {
+  return await apiGetOrCreateThread(bookingId);
+}
+
 /* ---------------- END ---------------- */

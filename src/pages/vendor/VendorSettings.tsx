@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { VendorLayout } from "@/components/layout/VendorLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,48 +39,130 @@ import {
   Save,
   Eye,
   EyeOff,
-  Upload,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { apiGetSettings, apiUpdateSettings } from "@/lib/api";
+
+type VendorProfile = {
+  businessName: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  address: string;
+  bio: string;
+  website: string;
+  // optional (if backend stores)
+  avatarDataUrl?: string;
+};
+
+type VendorBusiness = {
+  serviceRadius: string;
+  currency: string;
+  timezone: string;
+  workingHours: { start: string; end: string };
+  workingDays: string[];
+};
+
+type VendorNotifications = {
+  emailBookings: boolean;
+  emailMarketing: boolean;
+  smsBookings: boolean;
+  smsReminders: boolean;
+  pushNotifications: boolean;
+};
+
+type VendorPayment = {
+  bankName: string;
+  accountNumber: string;
+  routingNumber: string;
+  payoutSchedule: string;
+};
+
+type VendorSettingsDoc = {
+  profile?: Partial<VendorProfile>;
+  business?: Partial<VendorBusiness>;
+  notifications?: Partial<VendorNotifications>;
+  payment?: Partial<VendorPayment>;
+  // security is usually not stored here (handled via dedicated endpoint)
+};
+
+const emptyProfile: VendorProfile = {
+  businessName: "",
+  ownerName: "",
+  email: "",
+  phone: "",
+  address: "",
+  bio: "",
+  website: "",
+};
+
+const emptyBusiness: VendorBusiness = {
+  serviceRadius: "",
+  currency: "",
+  timezone: "",
+  workingHours: { start: "", end: "" },
+  workingDays: [],
+};
+
+const emptyNotifications: VendorNotifications = {
+  emailBookings: false,
+  emailMarketing: false,
+  smsBookings: false,
+  smsReminders: false,
+  pushNotifications: false,
+};
+
+const emptyPayment: VendorPayment = {
+  bankName: "",
+  accountNumber: "",
+  routingNumber: "",
+  payoutSchedule: "",
+};
+
+function toStringSafe(v: any) {
+  if (v === null || v === undefined) return "";
+  return String(v);
+}
+
+function mergeLoaded<T extends Record<string, any>>(base: T, loaded?: Partial<T>): T {
+  if (!loaded) return base;
+  const out: any = Array.isArray(base) ? [...(base as any)] : { ...base };
+
+  for (const k of Object.keys(base)) {
+    const bv = (base as any)[k];
+    const lv = (loaded as any)[k];
+
+    if (lv === undefined || lv === null) continue;
+
+    if (Array.isArray(bv)) out[k] = Array.isArray(lv) ? lv : bv;
+    else if (typeof bv === "boolean") out[k] = Boolean(lv);
+    else if (typeof bv === "object" && bv && !Array.isArray(bv)) {
+      out[k] = mergeLoaded(bv, lv);
+    } else out[k] = toStringSafe(lv);
+  }
+
+  // keep extra fields from backend (future-proof)
+  for (const k of Object.keys(loaded)) {
+    if (!(k in out)) out[k] = (loaded as any)[k];
+  }
+
+  return out as T;
+}
 
 const VendorSettings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Profile form state
-  const [profileForm, setProfileForm] = useState({
-    businessName: user?.businessName || "Quick Fix Services",
-    ownerName: user?.name || "John Doe",
-    email: user?.email || "vendor@email.com",
-    phone: "+1 234 567 8900",
-    address: "123 Business St, New York, NY 10001",
-    bio: "Professional home service provider with 10+ years of experience. We specialize in plumbing, electrical work, and general home repairs.",
-    website: "https://quickfixservices.com",
-  });
+  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<null | string>(null);
 
-  // Business settings state
-  const [businessSettings, setBusinessSettings] = useState({
-    serviceRadius: "25",
-    currency: "USD",
-    timezone: "America/New_York",
-    workingHours: {
-      start: "09:00",
-      end: "18:00",
-    },
-    workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-  });
+  // states (NO hardcoded defaults)
+  const [profileForm, setProfileForm] = useState<VendorProfile>(emptyProfile);
+  const [businessSettings, setBusinessSettings] = useState<VendorBusiness>(emptyBusiness);
+  const [notifications, setNotifications] = useState<VendorNotifications>(emptyNotifications);
+  const [paymentSettings, setPaymentSettings] = useState<VendorPayment>(emptyPayment);
 
-  // Notification settings state
-  const [notifications, setNotifications] = useState({
-    emailBookings: true,
-    emailMarketing: false,
-    smsBookings: true,
-    smsReminders: true,
-    pushNotifications: true,
-  });
-
-  // Security state
   const [securityForm, setSecurityForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -86,45 +174,118 @@ const VendorSettings = () => {
     confirm: false,
   });
 
-  // Payment settings state
-  const [paymentSettings, setPaymentSettings] = useState({
-    bankName: "Chase Bank",
-    accountNumber: "****4567",
-    routingNumber: "****1234",
-    payoutSchedule: "weekly",
-  });
-
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
+  // store last loaded doc so saving a section doesn't wipe others
+  const [loadedDoc, setLoadedDoc] = useState<VendorSettingsDoc>({});
+
+  const daysOfWeek = useMemo(
+    () => ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    []
+  );
+
+  const disabled = useMemo(() => loading || !!savingKey, [loading, savingKey]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+
+        const settings = await apiGetSettings("vendor"); // returns "settings" object
+        const doc = (settings || {}) as VendorSettingsDoc;
+        setLoadedDoc(doc);
+
+        // Prefer DB values; if missing, fall back to auth user (ONLY for name/email/businessName)
+        const profileMerged = mergeLoaded(emptyProfile, doc.profile);
+        const withAuth = {
+          ...profileMerged,
+          ownerName: profileMerged.ownerName || (user?.name || ""),
+          email: profileMerged.email || (user?.email || ""),
+          businessName: profileMerged.businessName || (user?.businessName || ""),
+        };
+
+        setProfileForm(withAuth);
+        setBusinessSettings(mergeLoaded(emptyBusiness, doc.business));
+        setNotifications(mergeLoaded(emptyNotifications, doc.notifications));
+        setPaymentSettings(mergeLoaded(emptyPayment, doc.payment));
+
+        const avatar = (doc.profile as any)?.avatarDataUrl;
+        if (avatar) setAvatarPreview(String(avatar));
+      } catch (e: any) {
+        toast({
+          title: "Failed to load settings",
+          description: e?.message || "Please try again",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [toast, user?.name, user?.email, user?.businessName]);
+
+  const saveSection = async (section: keyof VendorSettingsDoc) => {
+    try {
+      setSavingKey(section);
+
+      const nextDoc: VendorSettingsDoc = {
+        ...loadedDoc,
+        profile: section === "profile" ? { ...profileForm, avatarDataUrl: avatarPreview || undefined } : loadedDoc.profile,
+        business: section === "business" ? businessSettings : loadedDoc.business,
+        notifications: section === "notifications" ? notifications : loadedDoc.notifications,
+        payment: section === "payment" ? paymentSettings : loadedDoc.payment,
       };
-      reader.readAsDataURL(file);
+
+      const updated = await apiUpdateSettings("vendor", nextDoc as any);
+      const doc = (updated || nextDoc) as VendorSettingsDoc;
+      setLoadedDoc(doc);
+
+      // re-merge/normalize
+      const profileMerged = mergeLoaded(emptyProfile, doc.profile);
+      const withAuth = {
+        ...profileMerged,
+        ownerName: profileMerged.ownerName || (user?.name || ""),
+        email: profileMerged.email || (user?.email || ""),
+        businessName: profileMerged.businessName || (user?.businessName || ""),
+      };
+
+      setProfileForm(withAuth);
+      setBusinessSettings(mergeLoaded(emptyBusiness, doc.business));
+      setNotifications(mergeLoaded(emptyNotifications, doc.notifications));
+      setPaymentSettings(mergeLoaded(emptyPayment, doc.payment));
+
+      toast({
+        title: "Saved",
+        description: "Your settings have been updated successfully.",
+      });
+    } catch (e: any) {
+      toast({
+        title: "Save failed",
+        description: e?.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingKey(null);
     }
   };
 
-  const handleSaveProfile = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been saved successfully.",
-      });
-      setIsSaving(false);
-    }, 1000);
-  };
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const handleSaveNotifications = () => {
-    toast({
-      title: "Notifications Updated",
-      description: "Your notification preferences have been saved.",
-    });
+    // Small safety: allow only <= 1.5MB to avoid huge localStorage/db payload
+    if (file.size > 1.5 * 1024 * 1024) {
+      toast({
+        title: "Image too large",
+        description: "Please upload an image under 1.5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const handleChangePassword = () => {
@@ -144,30 +305,26 @@ const VendorSettings = () => {
       });
       return;
     }
-    toast({
-      title: "Password Changed",
-      description: "Your password has been updated successfully.",
-    });
-    setSecurityForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-  };
 
-  const handleSavePayment = () => {
+    // NOTE: Your backend password update endpoint is not shown in api.ts.
+    // If you have /auth/change-password, call it here.
     toast({
-      title: "Payment Settings Updated",
-      description: "Your payment information has been saved.",
+      title: "Password Change",
+      description:
+        "Frontend validation passed. Connect your backend change-password endpoint to finalize.",
     });
+
+    setSecurityForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
   };
 
   const handleDeleteAccount = () => {
     toast({
       title: "Account Deletion Requested",
-      description: "We'll process your request within 30 days.",
+      description: "We'll process your request as per policy.",
       variant: "destructive",
     });
     setDeleteModalOpen(false);
   };
-
-  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
   return (
     <VendorLayout>
@@ -175,9 +332,7 @@ const VendorSettings = () => {
         {/* Header */}
         <div>
           <h1 className="font-heading text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your account and business preferences
-          </p>
+          <p className="text-muted-foreground">Manage your account and business preferences</p>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
@@ -209,21 +364,16 @@ const VendorSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
-                <CardDescription>
-                  Update your business profile and contact details
-                </CardDescription>
+                <CardDescription>Update your business profile and contact details</CardDescription>
               </CardHeader>
+
               <CardContent className="space-y-6">
                 {/* Avatar */}
                 <div className="flex items-center gap-6">
                   <div className="relative">
                     <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-muted">
                       {avatarPreview ? (
-                        <img
-                          src={avatarPreview}
-                          alt="Avatar"
-                          className="h-full w-full object-cover"
-                        />
+                        <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
                       ) : (
                         <User className="h-12 w-12 text-muted-foreground" />
                       )}
@@ -235,14 +385,14 @@ const VendorSettings = () => {
                         accept="image/*"
                         className="hidden"
                         onChange={handleAvatarChange}
+                        disabled={disabled}
                       />
                     </label>
                   </div>
+
                   <div>
                     <p className="font-medium">Business Photo</p>
-                    <p className="text-sm text-muted-foreground">
-                      Upload a logo or profile image
-                    </p>
+                    <p className="text-sm text-muted-foreground">Upload a logo or profile image</p>
                   </div>
                 </div>
 
@@ -255,84 +405,86 @@ const VendorSettings = () => {
                     <Input
                       id="businessName"
                       value={profileForm.businessName}
-                      onChange={(e) =>
-                        setProfileForm({ ...profileForm, businessName: e.target.value })
-                      }
+                      onChange={(e) => setProfileForm({ ...profileForm, businessName: e.target.value })}
+                      disabled={disabled}
+                      placeholder="Your business name"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="ownerName">Owner Name</Label>
                     <Input
                       id="ownerName"
                       value={profileForm.ownerName}
-                      onChange={(e) =>
-                        setProfileForm({ ...profileForm, ownerName: e.target.value })
-                      }
+                      onChange={(e) => setProfileForm({ ...profileForm, ownerName: e.target.value })}
+                      disabled={disabled}
+                      placeholder="Your name"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
                       value={profileForm.email}
-                      onChange={(e) =>
-                        setProfileForm({ ...profileForm, email: e.target.value })
-                      }
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      disabled={disabled}
+                      placeholder="email@domain.com"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
                     <Input
                       id="phone"
                       value={profileForm.phone}
-                      onChange={(e) =>
-                        setProfileForm({ ...profileForm, phone: e.target.value })
-                      }
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      disabled={disabled}
+                      placeholder="+91..."
                     />
                   </div>
+
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="address">Business Address</Label>
                     <Input
                       id="address"
                       value={profileForm.address}
-                      onChange={(e) =>
-                        setProfileForm({ ...profileForm, address: e.target.value })
-                      }
+                      onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                      disabled={disabled}
+                      placeholder="Address"
                     />
                   </div>
+
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="bio">Business Description</Label>
                     <Textarea
                       id="bio"
                       rows={4}
                       value={profileForm.bio}
-                      onChange={(e) =>
-                        setProfileForm({ ...profileForm, bio: e.target.value })
-                      }
+                      onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                      disabled={disabled}
+                      placeholder="Describe your services..."
                     />
                   </div>
+
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="website">Website (Optional)</Label>
                     <Input
                       id="website"
                       type="url"
                       value={profileForm.website}
-                      onChange={(e) =>
-                        setProfileForm({ ...profileForm, website: e.target.value })
-                      }
+                      onChange={(e) => setProfileForm({ ...profileForm, website: e.target.value })}
+                      disabled={disabled}
+                      placeholder="https://"
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveProfile} disabled={isSaving}>
-                    {isSaving ? "Saving..." : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Changes
-                      </>
-                    )}
+                  <Button onClick={() => saveSection("profile")} disabled={disabled}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {savingKey === "profile" ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </CardContent>
@@ -344,56 +496,59 @@ const VendorSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Business Settings</CardTitle>
-                <CardDescription>
-                  Configure your service area and working hours
-                </CardDescription>
+                <CardDescription>Configure your service area and working hours</CardDescription>
               </CardHeader>
+
               <CardContent className="space-y-6">
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Service Radius (miles)</Label>
+                    <Label>Service Radius (km)</Label>
                     <Input
                       type="number"
                       value={businessSettings.serviceRadius}
                       onChange={(e) =>
-                        setBusinessSettings({
-                          ...businessSettings,
-                          serviceRadius: e.target.value,
-                        })
+                        setBusinessSettings({ ...businessSettings, serviceRadius: e.target.value })
                       }
+                      disabled={disabled}
+                      placeholder="e.g. 25"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label>Currency</Label>
                     <Select
-                      value={businessSettings.currency}
+                      value={businessSettings.currency || undefined}
                       onValueChange={(value) =>
                         setBusinessSettings({ ...businessSettings, currency: value })
                       }
+                      disabled={disabled}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder={loading ? "Loading..." : "Select currency"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="INR">INR (₹)</SelectItem>
+                        <SelectItem value="USD">USD ($)</SelectItem>
                         <SelectItem value="EUR">EUR (€)</SelectItem>
                         <SelectItem value="GBP">GBP (£)</SelectItem>
-                        <SelectItem value="INR">INR (₹)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div className="space-y-2">
                     <Label>Timezone</Label>
                     <Select
-                      value={businessSettings.timezone}
+                      value={businessSettings.timezone || undefined}
                       onValueChange={(value) =>
                         setBusinessSettings({ ...businessSettings, timezone: value })
                       }
+                      disabled={disabled}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder={loading ? "Loading..." : "Select timezone"} />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="Asia/Kolkata">India (Asia/Kolkata)</SelectItem>
                         <SelectItem value="America/New_York">Eastern Time</SelectItem>
                         <SelectItem value="America/Chicago">Central Time</SelectItem>
                         <SelectItem value="America/Denver">Mountain Time</SelectItem>
@@ -416,14 +571,13 @@ const VendorSettings = () => {
                         onChange={(e) =>
                           setBusinessSettings({
                             ...businessSettings,
-                            workingHours: {
-                              ...businessSettings.workingHours,
-                              start: e.target.value,
-                            },
+                            workingHours: { ...businessSettings.workingHours, start: e.target.value },
                           })
                         }
+                        disabled={disabled}
                       />
                     </div>
+
                     <div className="space-y-2">
                       <Label className="text-sm text-muted-foreground">End Time</Label>
                       <Input
@@ -432,12 +586,10 @@ const VendorSettings = () => {
                         onChange={(e) =>
                           setBusinessSettings({
                             ...businessSettings,
-                            workingHours: {
-                              ...businessSettings.workingHours,
-                              end: e.target.value,
-                            },
+                            workingHours: { ...businessSettings.workingHours, end: e.target.value },
                           })
                         }
+                        disabled={disabled}
                       />
                     </div>
                   </div>
@@ -450,19 +602,16 @@ const VendorSettings = () => {
                       <Button
                         key={day}
                         type="button"
-                        variant={
-                          businessSettings.workingDays.includes(day)
-                            ? "default"
-                            : "outline"
-                        }
+                        variant={businessSettings.workingDays.includes(day) ? "default" : "outline"}
                         size="sm"
+                        disabled={disabled}
                         onClick={() =>
-                          setBusinessSettings({
-                            ...businessSettings,
-                            workingDays: businessSettings.workingDays.includes(day)
-                              ? businessSettings.workingDays.filter((d) => d !== day)
-                              : [...businessSettings.workingDays, day],
-                          })
+                          setBusinessSettings((prev) => ({
+                            ...prev,
+                            workingDays: prev.workingDays.includes(day)
+                              ? prev.workingDays.filter((d) => d !== day)
+                              : [...prev.workingDays, day],
+                          }))
                         }
                       >
                         {day.slice(0, 3)}
@@ -472,9 +621,9 @@ const VendorSettings = () => {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveProfile}>
+                  <Button onClick={() => saveSection("business")} disabled={disabled}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                    {savingKey === "business" ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </CardContent>
@@ -486,13 +635,13 @@ const VendorSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
-                  Choose how you want to be notified
-                </CardDescription>
+                <CardDescription>Choose how you want to be notified</CardDescription>
               </CardHeader>
+
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="font-medium">Email Notifications</h3>
+
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -506,8 +655,10 @@ const VendorSettings = () => {
                         onCheckedChange={(checked) =>
                           setNotifications({ ...notifications, emailBookings: checked })
                         }
+                        disabled={disabled}
                       />
                     </div>
+
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">Marketing & Promotions</p>
@@ -520,6 +671,7 @@ const VendorSettings = () => {
                         onCheckedChange={(checked) =>
                           setNotifications({ ...notifications, emailMarketing: checked })
                         }
+                        disabled={disabled}
                       />
                     </div>
                   </div>
@@ -529,6 +681,7 @@ const VendorSettings = () => {
 
                 <div className="space-y-4">
                   <h3 className="font-medium">SMS Notifications</h3>
+
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -542,8 +695,10 @@ const VendorSettings = () => {
                         onCheckedChange={(checked) =>
                           setNotifications({ ...notifications, smsBookings: checked })
                         }
+                        disabled={disabled}
                       />
                     </div>
+
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">Booking Reminders</p>
@@ -556,6 +711,7 @@ const VendorSettings = () => {
                         onCheckedChange={(checked) =>
                           setNotifications({ ...notifications, smsReminders: checked })
                         }
+                        disabled={disabled}
                       />
                     </div>
                   </div>
@@ -577,14 +733,15 @@ const VendorSettings = () => {
                       onCheckedChange={(checked) =>
                         setNotifications({ ...notifications, pushNotifications: checked })
                       }
+                      disabled={disabled}
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveNotifications}>
+                  <Button onClick={() => saveSection("notifications")} disabled={disabled}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Preferences
+                    {savingKey === "notifications" ? "Saving..." : "Save Preferences"}
                   </Button>
                 </div>
               </CardContent>
@@ -596,10 +753,9 @@ const VendorSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Change Password</CardTitle>
-                <CardDescription>
-                  Update your password to keep your account secure
-                </CardDescription>
+                <CardDescription>Update your password to keep your account secure</CardDescription>
               </CardHeader>
+
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">Current Password</Label>
@@ -609,23 +765,17 @@ const VendorSettings = () => {
                       type={showPasswords.current ? "text" : "password"}
                       value={securityForm.currentPassword}
                       onChange={(e) =>
-                        setSecurityForm({
-                          ...securityForm,
-                          currentPassword: e.target.value,
-                        })
+                        setSecurityForm({ ...securityForm, currentPassword: e.target.value })
                       }
+                      disabled={disabled}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="absolute right-0 top-0"
-                      onClick={() =>
-                        setShowPasswords({
-                          ...showPasswords,
-                          current: !showPasswords.current,
-                        })
-                      }
+                      onClick={() => setShowPasswords((p) => ({ ...p, current: !p.current }))}
+                      disabled={disabled}
                     >
                       {showPasswords.current ? (
                         <EyeOff className="h-4 w-4" />
@@ -635,6 +785,7 @@ const VendorSettings = () => {
                     </Button>
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">New Password</Label>
                   <div className="relative">
@@ -642,24 +793,16 @@ const VendorSettings = () => {
                       id="newPassword"
                       type={showPasswords.new ? "text" : "password"}
                       value={securityForm.newPassword}
-                      onChange={(e) =>
-                        setSecurityForm({
-                          ...securityForm,
-                          newPassword: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })}
+                      disabled={disabled}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="absolute right-0 top-0"
-                      onClick={() =>
-                        setShowPasswords({
-                          ...showPasswords,
-                          new: !showPasswords.new,
-                        })
-                      }
+                      onClick={() => setShowPasswords((p) => ({ ...p, new: !p.new }))}
+                      disabled={disabled}
                     >
                       {showPasswords.new ? (
                         <EyeOff className="h-4 w-4" />
@@ -669,6 +812,7 @@ const VendorSettings = () => {
                     </Button>
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm New Password</Label>
                   <div className="relative">
@@ -677,23 +821,17 @@ const VendorSettings = () => {
                       type={showPasswords.confirm ? "text" : "password"}
                       value={securityForm.confirmPassword}
                       onChange={(e) =>
-                        setSecurityForm({
-                          ...securityForm,
-                          confirmPassword: e.target.value,
-                        })
+                        setSecurityForm({ ...securityForm, confirmPassword: e.target.value })
                       }
+                      disabled={disabled}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="absolute right-0 top-0"
-                      onClick={() =>
-                        setShowPasswords({
-                          ...showPasswords,
-                          confirm: !showPasswords.confirm,
-                        })
-                      }
+                      onClick={() => setShowPasswords((p) => ({ ...p, confirm: !p.confirm }))}
+                      disabled={disabled}
                     >
                       {showPasswords.confirm ? (
                         <EyeOff className="h-4 w-4" />
@@ -703,8 +841,11 @@ const VendorSettings = () => {
                     </Button>
                   </div>
                 </div>
+
                 <div className="flex justify-end">
-                  <Button onClick={handleChangePassword}>Change Password</Button>
+                  <Button onClick={handleChangePassword} disabled={disabled}>
+                    Change Password
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -717,7 +858,7 @@ const VendorSettings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="destructive" onClick={() => setDeleteModalOpen(true)}>
+                <Button variant="destructive" onClick={() => setDeleteModalOpen(true)} disabled={disabled}>
                   Delete Account
                 </Button>
               </CardContent>
@@ -729,10 +870,9 @@ const VendorSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Payment Settings</CardTitle>
-                <CardDescription>
-                  Manage your payout information
-                </CardDescription>
+                <CardDescription>Manage your payout information</CardDescription>
               </CardHeader>
+
               <CardContent className="space-y-6">
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -740,50 +880,48 @@ const VendorSettings = () => {
                     <Input
                       value={paymentSettings.bankName}
                       onChange={(e) =>
-                        setPaymentSettings({
-                          ...paymentSettings,
-                          bankName: e.target.value,
-                        })
+                        setPaymentSettings({ ...paymentSettings, bankName: e.target.value })
                       }
+                      disabled={disabled}
+                      placeholder="Bank name"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label>Account Number</Label>
                     <Input
                       value={paymentSettings.accountNumber}
                       onChange={(e) =>
-                        setPaymentSettings({
-                          ...paymentSettings,
-                          accountNumber: e.target.value,
-                        })
+                        setPaymentSettings({ ...paymentSettings, accountNumber: e.target.value })
                       }
+                      disabled={disabled}
+                      placeholder="Account number"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label>Routing Number</Label>
                     <Input
                       value={paymentSettings.routingNumber}
                       onChange={(e) =>
-                        setPaymentSettings({
-                          ...paymentSettings,
-                          routingNumber: e.target.value,
-                        })
+                        setPaymentSettings({ ...paymentSettings, routingNumber: e.target.value })
                       }
+                      disabled={disabled}
+                      placeholder="Routing/IFSC"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label>Payout Schedule</Label>
                     <Select
-                      value={paymentSettings.payoutSchedule}
+                      value={paymentSettings.payoutSchedule || undefined}
                       onValueChange={(value) =>
-                        setPaymentSettings({
-                          ...paymentSettings,
-                          payoutSchedule: value,
-                        })
+                        setPaymentSettings({ ...paymentSettings, payoutSchedule: value })
                       }
+                      disabled={disabled}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder={loading ? "Loading..." : "Select schedule"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="daily">Daily</SelectItem>
@@ -796,9 +934,9 @@ const VendorSettings = () => {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button onClick={handleSavePayment}>
+                  <Button onClick={() => saveSection("payment")} disabled={disabled}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Payment Info
+                    {savingKey === "payment" ? "Saving..." : "Save Payment Info"}
                   </Button>
                 </div>
               </CardContent>
@@ -813,21 +951,20 @@ const VendorSettings = () => {
           <DialogHeader>
             <DialogTitle className="text-destructive">Delete Account</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. All your services, bookings, and
-              data will be permanently deleted.
+              This action cannot be undone. All your services, bookings, and data will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Please type <strong>DELETE</strong> to confirm.
             </p>
-            <Input placeholder="Type DELETE to confirm" />
+            <Input placeholder="Type DELETE to confirm" disabled={disabled} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)} disabled={disabled}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteAccount}>
+            <Button variant="destructive" onClick={handleDeleteAccount} disabled={disabled}>
               Delete Account
             </Button>
           </DialogFooter>

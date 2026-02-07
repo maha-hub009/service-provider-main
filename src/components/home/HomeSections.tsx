@@ -6,87 +6,80 @@ import heroImage from "@/assets/hero-services.jpg";
 
 export const HeroSection = () => {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-40">
-        <div className="absolute -left-4 top-0 h-72 w-72 rounded-full bg-primary/30 blur-3xl" />
-        <div className="absolute -right-4 bottom-0 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
-      </div>
-
+    <section className="relative overflow-hidden bg-white">
       <div className="container relative py-20 lg:py-32">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           {/* Content */}
-          <div className="space-y-8 animate-fade-in">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary border border-primary/20">
-              <Star className="h-4 w-4 fill-primary" />
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#8F0177]/10 px-4 py-2 text-sm font-semibold text-[#8F0177] border border-[#8F0177]/20">
+              <Star className="h-4 w-4 fill-[#8F0177]" />
               <span>Trusted by 50,000+ customers worldwide</span>
             </div>
             
             <div>
-              <h1 className="font-heading text-5xl font-bold leading-tight tracking-tight md:text-6xl lg:text-7xl">
-                Professional Services at{" "}
-                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">Your Doorstep</span>
+              <h1 className="text-5xl md:text-6xl font-bold leading-tight text-[#360185]">
+                Professional Services at Your Doorstep
               </h1>
-              <p className="mt-4 max-w-lg text-lg text-muted-foreground leading-relaxed">
+              <p className="mt-4 max-w-lg text-lg text-gray-600 leading-relaxed">
                 Connect with verified professionals for home repairs, cleaning, vehicle services, and more. Quality guaranteed with transparent pricing.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:shadow-lg" asChild>
+              <Button size="lg" className="btn-primary" asChild>
                 <Link to="/services">
                   Explore Services
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold" asChild>
+              <Button size="lg" className="btn-brand" asChild>
                 <Link to="/vendor/register">Become a Vendor</Link>
               </Button>
             </div>
 
             {/* Trust Badges */}
             <div className="grid grid-cols-1 gap-3 pt-4 sm:grid-cols-3">
-              <div className="flex items-center gap-3 rounded-lg bg-white/50 dark:bg-white/5 p-3 border border-white/10">
-                <div className="rounded-lg bg-success/10 p-2">
-                  <Shield className="h-5 w-5 text-success" />
+              <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3 border border-gray-200">
+                <div className="icon-action">
+                  <Shield className="h-5 w-5" />
                 </div>
-                <span className="text-sm font-medium">Verified Pros</span>
+                <span className="text-sm font-semibold text-[#1F2937]">Verified Pros</span>
               </div>
-              <div className="flex items-center gap-3 rounded-lg bg-white/50 dark:bg-white/5 p-3 border border-white/10">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Clock className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3 border border-gray-200">
+                <div className="icon-brand">
+                  <Clock className="h-5 w-5" />
                 </div>
-                <span className="text-sm font-medium">Same Day Service</span>
+                <span className="text-sm font-semibold text-[#1F2937]">Same Day Service</span>
               </div>
-              <div className="flex items-center gap-3 rounded-lg bg-white/50 dark:bg-white/5 p-3 border border-white/10">
-                <div className="rounded-lg bg-accent/10 p-2">
-                  <CheckCircle2 className="h-5 w-5 text-accent" />
+              <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3 border border-gray-200">
+                <div className="icon-accent">
+                  <CheckCircle2 className="h-5 w-5" />
                 </div>
-                <span className="text-sm font-medium">Guaranteed Quality</span>
+                <span className="text-sm font-semibold text-[#1F2937]">Guaranteed Quality</span>
               </div>
             </div>
           </div>
 
           {/* Image */}
-          <div className="relative animate-slide-up lg:ml-8">
-            <div className="relative overflow-hidden rounded-3xl shadow-2xl border border-white/10">
+          <div className="relative lg:ml-8">
+            <div className="relative overflow-hidden rounded-xl shadow-lg border border-gray-200">
               <img
                 src={heroImage}
                 alt="Professional service providers"
                 className="h-auto w-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
             </div>
             
             {/* Floating Card */}
-            <div className="absolute -bottom-6 -left-6 rounded-2xl bg-card p-5 shadow-xl border border-white/10 animate-float backdrop-blur-sm">
+            <div className="absolute -bottom-6 -left-6 rounded-xl bg-white p-5 shadow-lg border border-gray-200">
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success/10 border border-success/20">
-                  <CheckCircle2 className="h-7 w-7 text-success" />
+                <div className="icon-action">
+                  <CheckCircle2 className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold">10,000+</p>
-                  <p className="text-xs text-muted-foreground">Services Completed</p>
+                  <p className="text-lg font-bold text-[#360185]">10,000+</p>
+                  <p className="text-xs text-gray-600">Services Completed</p>
                 </div>
               </div>
             </div>
@@ -99,18 +92,18 @@ export const HeroSection = () => {
 
 export const CategoriesSection = () => {
   return (
-    <section className="py-20 lg:py-28 bg-gradient-to-b from-background via-muted/20 to-background">
+    <section className="py-20 lg:py-28 bg-white">
       <div className="container">
         <div className="mb-16 text-center space-y-4">
           <div className="inline-block">
-            <span className="rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary border border-primary/20">
+            <span className="rounded-full bg-[#8F0177]/10 px-4 py-2 text-sm font-semibold text-[#8F0177] border border-[#8F0177]/20">
               Our Services
             </span>
           </div>
-          <h2 className="font-heading text-4xl font-bold md:text-5xl">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#360185]">
             Explore Professional Categories
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-lg text-gray-600">
             From home repairs to vehicle services, find verified professionals in your area
           </p>
         </div>
@@ -120,21 +113,19 @@ export const CategoriesSection = () => {
             <Link
               key={category.id}
               to={`/services/${category.id}`}
-              className="group rounded-2xl border bg-card/50 backdrop-blur-sm p-8 transition-all duration-300 hover:shadow-xl hover:border-primary/50 hover:bg-card/80 relative overflow-hidden"
+              className="group rounded-lg border border-gray-200 bg-white p-8 transition-all duration-300 hover:shadow-lg hover:border-[#8F0177] relative overflow-hidden"
             >
-              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl group-hover:blur-3xl transition-all" />
-              
               <div className="mb-6 flex items-start justify-between relative z-10">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-service-icon">
-                    <category.icon className="h-8 w-8 text-white" />
+                  <div className="icon-action">
+                    <category.icon className="h-8 w-8" />
                   </div>
                   <div>
-                    <h3 className="font-heading text-xl font-bold">{category.name}</h3>
-                    <p className="text-sm text-muted-foreground">{category.description}</p>
+                    <h3 className="text-xl font-bold text-[#360185]">{category.name}</h3>
+                    <p className="text-sm text-gray-600">{category.description}</p>
                   </div>
                 </div>
-                <ArrowRight className="h-5 w-5 text-primary opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                <ArrowRight className="h-5 w-5 text-[#8F0177] opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
               </div>
 
               <div className="grid grid-cols-2 gap-2 relative z-10">
@@ -144,7 +135,7 @@ export const CategoriesSection = () => {
               </div>
 
               {category.subcategories.length > 4 && (
-                <div className="mt-4 text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-all relative z-10">
+                <div className="mt-4 text-sm font-semibold text-[#8F0177] opacity-0 group-hover:opacity-100 transition-all relative z-10">
                   +{category.subcategories.length - 4} more services
                 </div>
               )}
@@ -166,12 +157,12 @@ const ServiceCard = ({
   return (
     <Link
       to={`/service/${categoryId}/${subcategory.id}`}
-      className="group/card flex items-center gap-2 rounded-lg border bg-background p-3 transition-all duration-200 hover:border-primary/30 hover:bg-primary/5"
+      className="group/card flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 transition-all duration-200 hover:border-[#8F0177] hover:bg-[#8F0177]/5"
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-service-icon">
-        <subcategory.icon className="h-4 w-4 text-white" />
+      <div className="icon-brand h-8 w-8 text-xs">
+        <subcategory.icon className="h-4 w-4" />
       </div>
-      <span className="text-sm font-medium">{subcategory.name}</span>
+      <span className="text-sm font-semibold text-[#1F2937]">{subcategory.name}</span>
     </Link>
   );
 };
@@ -199,18 +190,18 @@ export const HowItWorksSection = () => {
   ];
 
   return (
-    <section className="py-20 lg:py-28 bg-gradient-to-b from-background to-muted/30">
+    <section className="py-20 lg:py-28 bg-white">
       <div className="container">
         <div className="mb-16 text-center space-y-4">
           <div className="inline-block">
-            <span className="rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary border border-primary/20">
+            <span className="rounded-full bg-[#360185]/10 px-4 py-2 text-sm font-semibold text-[#360185] border border-[#360185]/20">
               Simple Process
             </span>
           </div>
-          <h2 className="font-heading text-4xl font-bold md:text-5xl">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#360185]">
             How It Works
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-lg text-gray-600">
             Getting professional service has never been easier
           </p>
         </div>
@@ -218,25 +209,21 @@ export const HowItWorksSection = () => {
         <div className="grid gap-8 md:grid-cols-3">
           {steps.map((step, index) => (
             <div key={step.number} className="relative group">
-              <div className="relative rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 p-8 h-full transition-all duration-300 hover:shadow-xl hover:border-primary/50 hover:bg-card/80">
-                <div className="absolute -right-4 -top-4 text-5xl opacity-10 group-hover:opacity-20 transition-all">
-                  {step.icon}
-                </div>
-                
+              <div className="relative rounded-lg bg-white border border-gray-200 p-8 h-full transition-all duration-300 hover:shadow-lg hover:border-[#8F0177]">
                 <div className="relative z-10 space-y-4">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent">
-                      <span className="font-heading text-xl font-bold text-primary-foreground">{step.number}</span>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#360185] text-white font-bold text-lg">
+                      {step.number}
                     </div>
-                    <h3 className="font-heading text-xl font-bold">{step.title}</h3>
+                    <h3 className="text-xl font-bold text-[#360185]">{step.title}</h3>
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+                  <p className="text-gray-600 leading-relaxed">{step.description}</p>
                 </div>
               </div>
               
               {index < steps.length - 1 && (
                 <div className="absolute -right-5 top-1/2 hidden -translate-y-1/2 md:block">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-primary to-accent text-white">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#8F0177] text-white">
                     <ArrowRight className="h-5 w-5" />
                   </div>
                 </div>
@@ -251,19 +238,15 @@ export const HowItWorksSection = () => {
 
 export const CTASection = () => {
   return (
-    <section className="py-20 lg:py-28">
+    <section className="py-20 lg:py-28 bg-white">
       <div className="container">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary via-accent to-primary p-8 md:p-12 lg:p-20">
-          {/* Background decoration */}
-          <div className="absolute -right-32 -top-32 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-          
+        <div className="relative overflow-hidden rounded-xl bg-[#360185] p-8 md:p-12 lg:p-20">
           <div className="relative z-10 grid items-center gap-12 lg:grid-cols-2">
-            <div className="text-primary-foreground space-y-6">
-              <h2 className="font-heading text-4xl font-bold md:text-5xl">
+            <div className="space-y-6">
+              <h2 className="text-4xl md:text-5xl font-bold text-white">
                 Ready to Experience Professional Service?
               </h2>
-              <p className="text-lg text-primary-foreground/90 leading-relaxed">
+              <p className="text-lg text-gray-200 leading-relaxed">
                 Join thousands of satisfied customers who have discovered the convenience of booking verified professionals for all their home and vehicle service needs.
               </p>
             </div>
@@ -272,7 +255,7 @@ export const CTASection = () => {
               <Button
                 size="lg"
                 asChild
-                className="bg-white text-primary hover:bg-white/90 shadow-lg font-semibold"
+                className="bg-[#F4B342] text-[#360185] hover:bg-[#E6A432] font-semibold"
               >
                 <Link to="/services">
                   Book a Service
@@ -282,7 +265,7 @@ export const CTASection = () => {
               <Button
                 size="lg"
                 asChild
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                className="border-2 border-white text-white hover:bg-white hover:text-[#360185] font-semibold"
               >
                 <Link to="/vendor/register">Become a Vendor</Link>
               </Button>

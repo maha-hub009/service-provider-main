@@ -9,19 +9,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg hover:-translate-y-0.5",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md",
-        outline:
-          "border-2 border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        gradient: "bg-gradient-primary text-primary-foreground shadow-lg hover:shadow-xl hover:-translate-y-0.5",
-        accent: "bg-gradient-accent text-accent-foreground shadow-lg hover:shadow-xl hover:-translate-y-0.5",
-        hero: "bg-gradient-primary text-primary-foreground shadow-xl hover:shadow-2xl hover:-translate-y-1 text-base px-8 py-6",
-        "hero-outline": "border-2 border-primary/20 bg-background/80 backdrop-blur-sm text-foreground hover:bg-primary hover:text-primary-foreground text-base px-8 py-6",
+        default: "bg-[#8F0177] text-white hover:bg-[#6A0156] shadow-md hover:shadow-lg active:scale-95",
+        destructive: "bg-[#DE1A58] text-white hover:bg-[#B91547] shadow-md active:scale-95",
+        outline: "border-2 border-[#8F0177] text-[#8F0177] bg-white hover:bg-[#8F0177]/10 active:scale-95",
+        secondary: "bg-[#360185] text-white hover:bg-[#240154] shadow-md active:scale-95",
+        ghost: "hover:bg-[#F4B342]/10 hover:text-[#F4B342]",
+        link: "text-[#8F0177] underline-offset-4 hover:underline",
+        gradient: "bg-[#8F0177] text-white shadow-lg hover:shadow-xl hover:bg-[#6A0156] active:scale-95",
+        accent: "bg-[#F4B342] text-[#360185] shadow-lg hover:shadow-xl hover:bg-[#E6A432] active:scale-95",
+        hero: "bg-[#8F0177] text-white shadow-xl hover:shadow-2xl hover:bg-[#6A0156] text-base px-8 py-6 active:scale-95",
+        "hero-outline": "border-2 border-[#8F0177] bg-white text-[#8F0177] hover:bg-[#8F0177] hover:text-white text-base px-8 py-6 active:scale-95",
       },
       size: {
         default: "h-10 px-4 py-2",

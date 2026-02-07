@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,85 +21,203 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import {
-  Settings,
-  Building,
-  Bell,
-  Shield,
-  CreditCard,
-  Mail,
-  Globe,
-  Palette,
-  Save,
-} from "lucide-react";
+import { Building, Bell, Shield, CreditCard, Palette, Save } from "lucide-react";
 import { toast } from "sonner";
+import { apiGetSettings, apiUpdateSettings } from "@/lib/api";
+
+type GeneralSettings = {
+  platformName: string;
+  tagline: string;
+  contactEmail: string;
+  contactPhone: string;
+  address: string;
+  currency: string;
+  timezone: string;
+};
+
+type NotificationSettings = {
+  emailNotifications: boolean;
+  newBookingAlert: boolean;
+  vendorApprovalAlert: boolean;
+  paymentAlert: boolean;
+  weeklyReport: boolean;
+  monthlyReport: boolean;
+};
+
+type CommissionSettings = {
+  platformFee: string;
+  minBookingAmount: string;
+  paymentMethods: string[];
+  autoPayouts: boolean;
+  payoutSchedule: string;
+};
+
+type SecuritySettings = {
+  twoFactorAuth: boolean;
+  sessionTimeout: string;
+  passwordPolicy: string;
+  loginAttempts: string;
+};
+
+type AppearanceSettings = {
+  primaryColor: string;
+  accentColor: string;
+  darkMode: boolean;
+  showBanner: boolean;
+  bannerText: string;
+};
+
+type AdminSettingsDoc = {
+  general?: Partial<GeneralSettings>;
+  notifications?: Partial<NotificationSettings>;
+  commission?: Partial<CommissionSettings>;
+  security?: Partial<SecuritySettings>;
+  appearance?: Partial<AppearanceSettings>;
+};
+
+const emptyGeneral: GeneralSettings = {
+  platformName: "",
+  tagline: "",
+  contactEmail: "",
+  contactPhone: "",
+  address: "",
+  currency: "",
+  timezone: "",
+};
+
+const emptyNotifications: NotificationSettings = {
+  emailNotifications: false,
+  newBookingAlert: false,
+  vendorApprovalAlert: false,
+  paymentAlert: false,
+  weeklyReport: false,
+  monthlyReport: false,
+};
+
+const emptyCommission: CommissionSettings = {
+  platformFee: "",
+  minBookingAmount: "",
+  paymentMethods: [],
+  autoPayouts: false,
+  payoutSchedule: "",
+};
+
+const emptySecurity: SecuritySettings = {
+  twoFactorAuth: false,
+  sessionTimeout: "",
+  passwordPolicy: "",
+  loginAttempts: "",
+};
+
+const emptyAppearance: AppearanceSettings = {
+  primaryColor: "",
+  accentColor: "",
+  darkMode: false,
+  showBanner: false,
+  bannerText: "",
+};
+
+function toStringSafe(v: any) {
+  if (v === null || v === undefined) return "";
+  return String(v);
+}
+
+function mergeLoaded<T extends Record<string, any>>(base: T, loaded?: Partial<T>): T {
+  if (!loaded) return base;
+  const out: any = { ...base };
+  for (const k of Object.keys(base)) {
+    const lv = (loaded as any)[k];
+    if (lv === undefined || lv === null) continue;
+
+    if (Array.isArray(base[k])) out[k] = Array.isArray(lv) ? lv : base[k];
+    else if (typeof base[k] === "boolean") out[k] = Boolean(lv);
+    else out[k] = toStringSafe(lv);
+  }
+  // include any extra keys from backend without breaking
+  for (const k of Object.keys(loaded)) {
+    if (!(k in out)) out[k] = (loaded as any)[k];
+  }
+  return out as T;
+}
 
 const AdminSettings = () => {
-  // General Settings
-  const [generalSettings, setGeneralSettings] = useState({
-    platformName: "Service Provider",
-    tagline: "Your one-stop solution for all services",
-    contactEmail: "support@serviceprovider.com",
-    contactPhone: "+1 555-0100",
-    address: "123 Business St, New York, NY 10001",
-    currency: "USD",
-    timezone: "America/New_York",
-  });
+  const [loading, setLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<null | string>(null);
 
-  // Notification Settings
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    newBookingAlert: true,
-    vendorApprovalAlert: true,
-    paymentAlert: true,
-    weeklyReport: true,
-    monthlyReport: false,
-  });
+  // states (no hardcoded default values; only loaded from DB or blank)
+  const [generalSettings, setGeneralSettings] = useState<GeneralSettings>(emptyGeneral);
+  const [notificationSettings, setNotificationSettings] =
+    useState<NotificationSettings>(emptyNotifications);
+  const [commissionSettings, setCommissionSettings] =
+    useState<CommissionSettings>(emptyCommission);
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>(emptySecurity);
+  const [appearanceSettings, setAppearanceSettings] =
+    useState<AppearanceSettings>(emptyAppearance);
 
-  // Commission Settings
-  const [commissionSettings, setCommissionSettings] = useState({
-    platformFee: "10",
-    minBookingAmount: "20",
-    paymentMethods: ["card", "bank"],
-    autoPayouts: true,
-    payoutSchedule: "weekly",
-  });
+  // keep last loaded raw doc to avoid overwriting other sections when saving
+  const [loadedDoc, setLoadedDoc] = useState<AdminSettingsDoc>({});
 
-  // Security Settings
-  const [securitySettings, setSecuritySettings] = useState({
-    twoFactorAuth: false,
-    sessionTimeout: "30",
-    passwordPolicy: "strong",
-    loginAttempts: "5",
-  });
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const settings = await apiGetSettings("admin"); // returns AppSettings object (we store nested keys)
+        const doc = (settings || {}) as AdminSettingsDoc;
+        setLoadedDoc(doc);
 
-  // Appearance Settings
-  const [appearanceSettings, setAppearanceSettings] = useState({
-    primaryColor: "#4F46E5",
-    accentColor: "#F59E0B",
-    darkMode: false,
-    showBanner: true,
-    bannerText: "Welcome to Service Provider - Your trusted service booking platform!",
-  });
+        setGeneralSettings(mergeLoaded(emptyGeneral, doc.general));
+        setNotificationSettings(mergeLoaded(emptyNotifications, doc.notifications));
+        setCommissionSettings(mergeLoaded(emptyCommission, doc.commission));
+        setSecuritySettings(mergeLoaded(emptySecurity, doc.security));
+        setAppearanceSettings(mergeLoaded(emptyAppearance, doc.appearance));
+      } catch (e: any) {
+        toast.error(e?.message || "Failed to load settings");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-  const handleSaveGeneral = () => {
-    toast.success("General settings saved successfully");
-  };
+  const disabled = useMemo(() => loading || !!savingKey, [loading, savingKey]);
 
-  const handleSaveNotifications = () => {
-    toast.success("Notification settings saved successfully");
-  };
+  const saveSection = async (section: keyof AdminSettingsDoc) => {
+    try {
+      setSavingKey(section);
 
-  const handleSaveCommission = () => {
-    toast.success("Commission settings saved successfully");
-  };
+      const nextDoc: AdminSettingsDoc = {
+        ...loadedDoc,
+        [section]:
+          section === "general"
+            ? generalSettings
+            : section === "notifications"
+              ? notificationSettings
+              : section === "commission"
+                ? commissionSettings
+                : section === "security"
+                  ? securitySettings
+                  : appearanceSettings,
+      };
 
-  const handleSaveSecurity = () => {
-    toast.success("Security settings saved successfully");
-  };
+      // persist full doc (safe; prevents losing other keys)
+      const updated = await apiUpdateSettings("admin", nextDoc as any);
 
-  const handleSaveAppearance = () => {
-    toast.success("Appearance settings saved successfully");
+      // reflect saved server state
+      const doc = (updated || nextDoc) as AdminSettingsDoc;
+      setLoadedDoc(doc);
+
+      // re-merge to ensure booleans/arrays normalized
+      setGeneralSettings(mergeLoaded(emptyGeneral, doc.general));
+      setNotificationSettings(mergeLoaded(emptyNotifications, doc.notifications));
+      setCommissionSettings(mergeLoaded(emptyCommission, doc.commission));
+      setSecuritySettings(mergeLoaded(emptySecurity, doc.security));
+      setAppearanceSettings(mergeLoaded(emptyAppearance, doc.appearance));
+
+      toast.success("Settings saved successfully");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save settings");
+    } finally {
+      setSavingKey(null);
+    }
   };
 
   return (
@@ -102,9 +226,7 @@ const AdminSettings = () => {
         {/* Header */}
         <div>
           <h1 className="font-heading text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your platform settings and preferences
-          </p>
+          <p className="text-muted-foreground">Manage your platform settings and preferences</p>
         </div>
 
         <Tabs defaultValue="general" className="space-y-6">
@@ -136,9 +258,7 @@ const AdminSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>General Settings</CardTitle>
-                <CardDescription>
-                  Configure your platform's basic information
-                </CardDescription>
+                <CardDescription>Configure your platform's basic information</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">
@@ -148,26 +268,26 @@ const AdminSettings = () => {
                       id="platformName"
                       value={generalSettings.platformName}
                       onChange={(e) =>
-                        setGeneralSettings((prev) => ({
-                          ...prev,
-                          platformName: e.target.value,
-                        }))
+                        setGeneralSettings((prev) => ({ ...prev, platformName: e.target.value }))
                       }
+                      disabled={disabled}
+                      placeholder="e.g. Service Provider"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="tagline">Tagline</Label>
                     <Input
                       id="tagline"
                       value={generalSettings.tagline}
                       onChange={(e) =>
-                        setGeneralSettings((prev) => ({
-                          ...prev,
-                          tagline: e.target.value,
-                        }))
+                        setGeneralSettings((prev) => ({ ...prev, tagline: e.target.value }))
                       }
+                      disabled={disabled}
+                      placeholder="e.g. Your one-stop solution"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="contactEmail">Contact Email</Label>
                     <Input
@@ -175,90 +295,88 @@ const AdminSettings = () => {
                       type="email"
                       value={generalSettings.contactEmail}
                       onChange={(e) =>
-                        setGeneralSettings((prev) => ({
-                          ...prev,
-                          contactEmail: e.target.value,
-                        }))
+                        setGeneralSettings((prev) => ({ ...prev, contactEmail: e.target.value }))
                       }
+                      disabled={disabled}
+                      placeholder="support@yourapp.com"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="contactPhone">Contact Phone</Label>
                     <Input
                       id="contactPhone"
                       value={generalSettings.contactPhone}
                       onChange={(e) =>
-                        setGeneralSettings((prev) => ({
-                          ...prev,
-                          contactPhone: e.target.value,
-                        }))
+                        setGeneralSettings((prev) => ({ ...prev, contactPhone: e.target.value }))
                       }
+                      disabled={disabled}
+                      placeholder="+91 ..."
                     />
                   </div>
+
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="address">Address</Label>
                     <Textarea
                       id="address"
                       value={generalSettings.address}
                       onChange={(e) =>
-                        setGeneralSettings((prev) => ({
-                          ...prev,
-                          address: e.target.value,
-                        }))
+                        setGeneralSettings((prev) => ({ ...prev, address: e.target.value }))
                       }
+                      disabled={disabled}
+                      placeholder="Office / Support address"
                     />
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="currency">Currency</Label>
                     <Select
-                      value={generalSettings.currency}
+                      value={generalSettings.currency || undefined}
                       onValueChange={(value) =>
-                        setGeneralSettings((prev) => ({
-                          ...prev,
-                          currency: value,
-                        }))
+                        setGeneralSettings((prev) => ({ ...prev, currency: value }))
                       }
+                      disabled={disabled}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder={loading ? "Loading..." : "Select currency"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="INR">INR (₹)</SelectItem>
+                        <SelectItem value="USD">USD ($)</SelectItem>
                         <SelectItem value="EUR">EUR (€)</SelectItem>
                         <SelectItem value="GBP">GBP (£)</SelectItem>
-                        <SelectItem value="INR">INR (₹)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="timezone">Timezone</Label>
                     <Select
-                      value={generalSettings.timezone}
+                      value={generalSettings.timezone || undefined}
                       onValueChange={(value) =>
-                        setGeneralSettings((prev) => ({
-                          ...prev,
-                          timezone: value,
-                        }))
+                        setGeneralSettings((prev) => ({ ...prev, timezone: value }))
                       }
+                      disabled={disabled}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder={loading ? "Loading..." : "Select timezone"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                        <SelectItem value="America/Chicago">Central Time</SelectItem>
-                        <SelectItem value="America/Denver">Mountain Time</SelectItem>
-                        <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
+                        <SelectItem value="Asia/Kolkata">India (Asia/Kolkata)</SelectItem>
+                        <SelectItem value="America/New_York">Eastern (US)</SelectItem>
+                        <SelectItem value="America/Chicago">Central (US)</SelectItem>
+                        <SelectItem value="America/Denver">Mountain (US)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific (US)</SelectItem>
                         <SelectItem value="Europe/London">London</SelectItem>
-                        <SelectItem value="Asia/Kolkata">India</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveGeneral}>
+                  <Button onClick={() => saveSection("general")} disabled={disabled}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                    {savingKey === "general" ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </CardContent>
@@ -270,9 +388,7 @@ const AdminSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Notification Settings</CardTitle>
-                <CardDescription>
-                  Configure how you receive notifications
-                </CardDescription>
+                <CardDescription>Configure how you receive notifications</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
@@ -291,9 +407,12 @@ const AdminSettings = () => {
                           emailNotifications: checked,
                         }))
                       }
+                      disabled={disabled}
                     />
                   </div>
+
                   <Separator />
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">New Booking Alerts</p>
@@ -309,9 +428,12 @@ const AdminSettings = () => {
                           newBookingAlert: checked,
                         }))
                       }
+                      disabled={disabled}
                     />
                   </div>
+
                   <Separator />
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Vendor Approval Alerts</p>
@@ -327,9 +449,12 @@ const AdminSettings = () => {
                           vendorApprovalAlert: checked,
                         }))
                       }
+                      disabled={disabled}
                     />
                   </div>
+
                   <Separator />
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Payment Alerts</p>
@@ -345,9 +470,12 @@ const AdminSettings = () => {
                           paymentAlert: checked,
                         }))
                       }
+                      disabled={disabled}
                     />
                   </div>
+
                   <Separator />
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Weekly Report</p>
@@ -363,9 +491,12 @@ const AdminSettings = () => {
                           weeklyReport: checked,
                         }))
                       }
+                      disabled={disabled}
                     />
                   </div>
+
                   <Separator />
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Monthly Report</p>
@@ -381,13 +512,15 @@ const AdminSettings = () => {
                           monthlyReport: checked,
                         }))
                       }
+                      disabled={disabled}
                     />
                   </div>
                 </div>
+
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveNotifications}>
+                  <Button onClick={() => saveSection("notifications")} disabled={disabled}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                    {savingKey === "notifications" ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </CardContent>
@@ -399,9 +532,7 @@ const AdminSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Commission & Payment Settings</CardTitle>
-                <CardDescription>
-                  Configure platform fees and payment options
-                </CardDescription>
+                <CardDescription>Configure platform fees and payment options</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">
@@ -419,13 +550,16 @@ const AdminSettings = () => {
                           platformFee: e.target.value,
                         }))
                       }
+                      disabled={disabled}
+                      placeholder="e.g. 10"
                     />
                     <p className="text-xs text-muted-foreground">
                       Commission charged on each booking
                     </p>
                   </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="minBookingAmount">Minimum Booking Amount (₹)</Label>
+                    <Label htmlFor="minBookingAmount">Minimum Booking Amount</Label>
                     <Input
                       id="minBookingAmount"
                       type="number"
@@ -437,24 +571,26 @@ const AdminSettings = () => {
                           minBookingAmount: e.target.value,
                         }))
                       }
+                      disabled={disabled}
+                      placeholder="e.g. 200"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Minimum amount for a booking
-                    </p>
+                    <p className="text-xs text-muted-foreground">Minimum amount for a booking</p>
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="payoutSchedule">Payout Schedule</Label>
                     <Select
-                      value={commissionSettings.payoutSchedule}
+                      value={commissionSettings.payoutSchedule || undefined}
                       onValueChange={(value) =>
                         setCommissionSettings((prev) => ({
                           ...prev,
                           payoutSchedule: value,
                         }))
                       }
+                      disabled={disabled}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder={loading ? "Loading..." : "Select schedule"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="daily">Daily</SelectItem>
@@ -464,6 +600,7 @@ const AdminSettings = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div className="flex items-end">
                     <div className="flex items-center space-x-2">
                       <Switch
@@ -475,12 +612,15 @@ const AdminSettings = () => {
                             autoPayouts: checked,
                           }))
                         }
+                        disabled={disabled}
                       />
                       <Label htmlFor="autoPayouts">Automatic Payouts</Label>
                     </div>
                   </div>
                 </div>
+
                 <Separator />
+
                 <div className="space-y-4">
                   <Label>Accepted Payment Methods</Label>
                   <div className="grid gap-4 md:grid-cols-3">
@@ -503,23 +643,23 @@ const AdminSettings = () => {
                             } else {
                               setCommissionSettings((prev) => ({
                                 ...prev,
-                                paymentMethods: prev.paymentMethods.filter(
-                                  (m) => m !== method.id
-                                ),
+                                paymentMethods: prev.paymentMethods.filter((m) => m !== method.id),
                               }));
                             }
                           }}
                           className="h-4 w-4 rounded border-border"
+                          disabled={disabled}
                         />
                         <Label htmlFor={method.id}>{method.label}</Label>
                       </div>
                     ))}
                   </div>
                 </div>
+
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveCommission}>
+                  <Button onClick={() => saveSection("commission")} disabled={disabled}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                    {savingKey === "commission" ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </CardContent>
@@ -531,9 +671,7 @@ const AdminSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Security Settings</CardTitle>
-                <CardDescription>
-                  Configure security and authentication options
-                </CardDescription>
+                <CardDescription>Configure security and authentication options</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
@@ -552,9 +690,12 @@ const AdminSettings = () => {
                           twoFactorAuth: checked,
                         }))
                       }
+                      disabled={disabled}
                     />
                   </div>
+
                   <Separator />
+
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
@@ -570,8 +711,11 @@ const AdminSettings = () => {
                             sessionTimeout: e.target.value,
                           }))
                         }
+                        disabled={disabled}
+                        placeholder="e.g. 30"
                       />
                     </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="loginAttempts">Max Login Attempts</Label>
                       <Input
@@ -586,37 +730,40 @@ const AdminSettings = () => {
                             loginAttempts: e.target.value,
                           }))
                         }
+                        disabled={disabled}
+                        placeholder="e.g. 5"
                       />
                     </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="passwordPolicy">Password Policy</Label>
                       <Select
-                        value={securitySettings.passwordPolicy}
+                        value={securitySettings.passwordPolicy || undefined}
                         onValueChange={(value) =>
                           setSecuritySettings((prev) => ({
                             ...prev,
                             passwordPolicy: value,
                           }))
                         }
+                        disabled={disabled}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder={loading ? "Loading..." : "Select policy"} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="basic">Basic (8+ characters)</SelectItem>
-                          <SelectItem value="medium">Medium (8+ chars, mixed case)</SelectItem>
-                          <SelectItem value="strong">
-                            Strong (8+ chars, mixed case, numbers, symbols)
-                          </SelectItem>
+                          <SelectItem value="medium">Medium (mixed case)</SelectItem>
+                          <SelectItem value="strong">Strong (symbols + numbers)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                 </div>
+
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveSecurity}>
+                  <Button onClick={() => saveSection("security")} disabled={disabled}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                    {savingKey === "security" ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </CardContent>
@@ -628,9 +775,7 @@ const AdminSettings = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Appearance Settings</CardTitle>
-                <CardDescription>
-                  Customize the look and feel of your platform
-                </CardDescription>
+                <CardDescription>Customize the look and feel of your platform</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">
@@ -640,7 +785,7 @@ const AdminSettings = () => {
                       <Input
                         id="primaryColor"
                         type="color"
-                        value={appearanceSettings.primaryColor}
+                        value={appearanceSettings.primaryColor || "#000000"}
                         onChange={(e) =>
                           setAppearanceSettings((prev) => ({
                             ...prev,
@@ -648,6 +793,7 @@ const AdminSettings = () => {
                           }))
                         }
                         className="h-10 w-20 cursor-pointer"
+                        disabled={disabled}
                       />
                       <Input
                         value={appearanceSettings.primaryColor}
@@ -658,16 +804,19 @@ const AdminSettings = () => {
                           }))
                         }
                         className="flex-1"
+                        disabled={disabled}
+                        placeholder="#4F46E5"
                       />
                     </div>
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="accentColor">Accent Color</Label>
                     <div className="flex gap-2">
                       <Input
                         id="accentColor"
                         type="color"
-                        value={appearanceSettings.accentColor}
+                        value={appearanceSettings.accentColor || "#000000"}
                         onChange={(e) =>
                           setAppearanceSettings((prev) => ({
                             ...prev,
@@ -675,6 +824,7 @@ const AdminSettings = () => {
                           }))
                         }
                         className="h-10 w-20 cursor-pointer"
+                        disabled={disabled}
                       />
                       <Input
                         value={appearanceSettings.accentColor}
@@ -685,11 +835,15 @@ const AdminSettings = () => {
                           }))
                         }
                         className="flex-1"
+                        disabled={disabled}
+                        placeholder="#F59E0B"
                       />
                     </div>
                   </div>
                 </div>
+
                 <Separator />
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -706,9 +860,12 @@ const AdminSettings = () => {
                           darkMode: checked,
                         }))
                       }
+                      disabled={disabled}
                     />
                   </div>
+
                   <Separator />
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Show Banner</p>
@@ -724,8 +881,10 @@ const AdminSettings = () => {
                           showBanner: checked,
                         }))
                       }
+                      disabled={disabled}
                     />
                   </div>
+
                   {appearanceSettings.showBanner && (
                     <div className="space-y-2">
                       <Label htmlFor="bannerText">Banner Text</Label>
@@ -738,14 +897,17 @@ const AdminSettings = () => {
                             bannerText: e.target.value,
                           }))
                         }
+                        disabled={disabled}
+                        placeholder="Announcement text..."
                       />
                     </div>
                   )}
                 </div>
+
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveAppearance}>
+                  <Button onClick={() => saveSection("appearance")} disabled={disabled}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                    {savingKey === "appearance" ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </CardContent>

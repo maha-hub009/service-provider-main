@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { USER_ROLES } from "@/lib/constants";
@@ -41,8 +41,15 @@ import VendorSettings from "./pages/vendor/VendorSettings";
 // Customer Pages
 import CustomerBookings from "./pages/customer/CustomerBookings";
 
+// 🔹 Shared components (Chat + Review routes optional usage)
+import ChatBox from "@/components/chat/Chatbox";
+import ReviewForm from "@/components/review/ReviewForm";
+
 const queryClient = new QueryClient();
 
+/* =========================
+   Smooth scroll on route change
+========================= */
 const ScrollToTop = () => {
   const { pathname } = useLocation();
 
@@ -57,6 +64,9 @@ const ScrollToTop = () => {
   return null;
 };
 
+/* =========================
+   App Router
+========================= */
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -65,22 +75,23 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+
           <Routes>
-            {/* Public Routes */}
+            {/* ---------------- PUBLIC ROUTES ---------------- */}
             <Route path="/" element={<Index />} />
             <Route path="/services/:categoryId?" element={<Services />} />
             <Route path="/service/:categoryId/:serviceId" element={<ServiceDetail />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/about" element={<About />} />
 
-            {/* Auth Routes */}
+            {/* ---------------- AUTH ROUTES ---------------- */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/vendor/login" element={<VendorLogin />} />
             <Route path="/vendor/register" element={<VendorRegister />} />
             <Route path="/admin/login" element={<AdminLogin />} />
 
-            {/* Admin Routes */}
+            {/* ---------------- ADMIN ROUTES ---------------- */}
             <Route
               path="/admin"
               element={
@@ -130,7 +141,7 @@ const App = () => (
               }
             />
 
-            {/* Vendor Routes */}
+            {/* ---------------- VENDOR ROUTES ---------------- */}
             <Route
               path="/vendor"
               element={
@@ -172,7 +183,7 @@ const App = () => (
               }
             />
 
-            {/* Customer Routes */}
+            {/* ---------------- CUSTOMER ROUTES ---------------- */}
             <Route
               path="/customer/bookings"
               element={
@@ -182,7 +193,40 @@ const App = () => (
               }
             />
 
-            {/* 404 */}
+            {/* ---------------- OPTIONAL SHARED ROUTES ---------------- */}
+            {/* These routes allow direct navigation if needed (testing chat/review standalone) */}
+
+            <Route
+              path="/chat/:bookingId"
+              element={
+                <ProtectedRoute
+                  allowedRoles={[USER_ROLES.CUSTOMER, USER_ROLES.VENDOR]}
+                  redirectTo="/login"
+                >
+                  <div className="container py-8">
+                    <ChatBox bookingId={""} />
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/review/:bookingId"
+              element={
+                <ProtectedRoute allowedRoles={[USER_ROLES.CUSTOMER]} redirectTo="/login">
+                  <div className="container py-8">
+                    <ReviewForm bookingId={""} />
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ---------------- REDIRECTS ---------------- */}
+            {/* prevent blank vendor/admin root routes */}
+            <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
+            <Route path="/vendor/*" element={<Navigate to="/vendor" replace />} />
+
+            {/* ---------------- 404 ---------------- */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
