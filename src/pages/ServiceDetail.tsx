@@ -7,7 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, MapPin, Clock, IndianRupee } from "lucide-react";
+import {
+  Loader2,
+  MapPin,
+  Clock,
+  IndianRupee,
+  Star,
+  ShieldCheck,
+} from "lucide-react";
+
+
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiCreateBooking, apiListServices, ServiceDoc } from "@/lib/api";
@@ -19,7 +28,9 @@ const ServiceDetail = () => {
   const { user, isAuthenticated } = useAuth();
 
   const selectedCategory = SERVICE_CATEGORIES.find((c) => c.id === categoryId);
-  const selectedSub = selectedCategory?.subcategories.find((s) => s.id === serviceId);
+  const selectedSub = selectedCategory?.subcategories.find(
+    (s) => s.id === serviceId
+  );
 
   const [loading, setLoading] = useState(true);
   const [offerings, setOfferings] = useState<ServiceDoc[]>([]);
@@ -35,8 +46,6 @@ const ServiceDetail = () => {
   const categoryName = selectedCategory?.name || "Category";
 
   const subcategoryBackendId = useMemo(() => {
-    // your backend uses string subcategory like "plumber"
-    // your frontend subcategory id is same (plumber/electrician etc.)
     return serviceId || "";
   }, [serviceId]);
 
@@ -53,7 +62,11 @@ const ServiceDetail = () => {
         setOfferings(res.items || []);
         if (res.items?.length) setSelectedOfferingId(res.items[0]._id);
       } catch (e: any) {
-        toast({ title: "Failed to load services", description: e?.message, variant: "destructive" });
+        toast({
+          title: "Failed to load services",
+          description: e?.message,
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -66,28 +79,48 @@ const ServiceDetail = () => {
 
   const onBook = async () => {
     if (!isAuthenticated) {
-      toast({ title: "Login required", description: "Please login to book a service.", variant: "destructive" });
+      toast({
+        title: "Login required",
+        description: "Please login to book a service.",
+        variant: "destructive",
+      });
       navigate("/login");
       return;
     }
 
     if (user?.role !== "customer") {
-      toast({ title: "Only customers can book", description: "Switch to customer account.", variant: "destructive" });
+      toast({
+        title: "Only customers can book",
+        description: "Switch to customer account.",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!selectedOfferingId) {
-      toast({ title: "Select a provider", description: "Please choose a vendor service.", variant: "destructive" });
+      toast({
+        title: "Select a provider",
+        description: "Please choose a vendor service.",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!scheduledAt) {
-      toast({ title: "Select date & time", description: "Choose schedule time.", variant: "destructive" });
+      toast({
+        title: "Select date & time",
+        description: "Choose schedule time.",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!address.trim()) {
-      toast({ title: "Address required", description: "Enter service address.", variant: "destructive" });
+      toast({
+        title: "Address required",
+        description: "Enter service address.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -100,10 +133,17 @@ const ServiceDetail = () => {
         notes: notes.trim() || undefined,
       });
 
-      toast({ title: "Booking created!", description: "You can track progress in chat.", });
+      toast({
+        title: "Booking created!",
+        description: "You can track progress in chat.",
+      });
       navigate(`/customer/bookings?bookingId=${booking._id}`);
     } catch (e: any) {
-      toast({ title: "Booking failed", description: e?.message, variant: "destructive" });
+      toast({
+        title: "Booking failed",
+        description: e?.message,
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -131,9 +171,13 @@ const ServiceDetail = () => {
       <div className="container py-8 space-y-6">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/services" className="hover:underline">Services</Link>
+            <Link to="/services" className="hover:underline">
+              Services
+            </Link>
             <span>/</span>
-            <Link to={`/services/${categoryId}`} className="hover:underline">{categoryName}</Link>
+            <Link to={`/services/${categoryId}`} className="hover:underline">
+              {categoryName}
+            </Link>
             <span>/</span>
             <span className="text-foreground">{title}</span>
           </div>
@@ -152,6 +196,7 @@ const ServiceDetail = () => {
           <CardHeader>
             <CardTitle>Available Providers</CardTitle>
           </CardHeader>
+
           <CardContent>
             {loading ? (
               <div className="py-10 text-center text-muted-foreground">
@@ -168,43 +213,76 @@ const ServiceDetail = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-4">
                 {offerings.map((o) => {
+                  const vendor = o.vendor || {};
                   const vendorName =
-                    o.vendor?.user?.businessName ||
-                    o.vendor?.businessName ||
-                    o.vendor?.user?.name ||
+                    vendor?.user?.businessName ||
+                    vendor?.businessName ||
+                    vendor?.user?.name ||
                     "Vendor";
 
+                  const ratingValue = Number(vendor?.rating || 0);
+                  const jobsCount = Number(vendor?.totalJobs || 0);
+                  const isVerified = Boolean(vendor?.isVerified);
+
                   return (
-                    <button
+                    <Card
                       key={o._id}
-                      onClick={() => setSelectedOfferingId(o._id)}
-                      className={`text-left rounded-lg border p-4 transition ${
-                        selectedOfferingId === o._id ? "border-primary ring-2 ring-primary/20" : "hover:bg-muted/50"
+                      className={`cursor-pointer transition-all hover:shadow-md ${
+                        selectedOfferingId === o._id ? "ring-2 ring-primary" : ""
                       }`}
+                      onClick={() => setSelectedOfferingId(o._id)}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-semibold">{o.name}</div>
-                          <div className="text-sm text-muted-foreground mt-1">{vendorName}</div>
+                      <CardContent className="p-5 flex items-center justify-between">
+                        {/* LEFT */}
+                        <div className="space-y-1">
+                          <h3 className="font-semibold text-lg">{vendorName}</h3>
+
+                          <p className="text-sm text-muted-foreground">
+                            {o.subcategory || "Service Provider"}
+                          </p>
+
+                          {/* ⭐ Rating */}
+                          <div className="flex items-center gap-2 mt-1">
+                            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                            <span className="text-sm font-medium">
+                              {ratingValue ? ratingValue.toFixed(1) : "0.0"}
+                            </span>
+
+                            <span className="text-xs text-muted-foreground">
+                              ({jobsCount} jobs)
+                            </span>
+
+                            {isVerified && (
+                              <span className="flex items-center gap-1 text-xs text-success ml-2">
+                                <ShieldCheck className="h-3 w-3" />
+                                Verified
+                              </span>
+                            )}
+                          </div>
+
+                          {o.description ? (
+                            <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                              {o.description}
+                            </p>
+                          ) : null}
                         </div>
-                        <div className="text-right">
-                          <div className="font-bold flex items-center justify-end gap-1">
+
+                        {/* RIGHT */}
+                        <div className="text-right space-y-1">
+                          <p className="font-semibold text-lg flex items-center justify-end gap-1">
                             <IndianRupee className="h-4 w-4" />
                             {o.price}
-                          </div>
-                          <div className="text-xs text-muted-foreground flex items-center justify-end gap-1 mt-1">
+                          </p>
+
+                          <p className="text-xs text-muted-foreground flex items-center justify-end gap-1 mt-1">
                             <Clock className="h-3 w-3" />
                             {o.durationMinutes || 60} min
-                          </div>
+                          </p>
                         </div>
-                      </div>
-
-                      {o.description ? (
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{o.description}</p>
-                      ) : null}
-                    </button>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
@@ -232,26 +310,42 @@ const ServiceDetail = () => {
                 <Label>Address</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="pl-9" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Your address" />
+                  <Input
+                    className="pl-9"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Your address"
+                  />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Notes (optional)</Label>
-              <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special instructions…" />
+              <Input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any special instructions…"
+              />
             </div>
 
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="text-sm text-muted-foreground">
                 Selected:{" "}
                 <span className="text-foreground font-medium">
-                  {selectedOffering ? `${selectedOffering.name} (₹${selectedOffering.price})` : "None"}
+                  {selectedOffering
+                    ? `${selectedOffering.name} (₹${selectedOffering.price})`
+                    : "None"}
                 </span>
               </div>
 
-              <Button onClick={onBook} disabled={submitting || offerings.length === 0}>
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              <Button
+                onClick={onBook}
+                disabled={submitting || offerings.length === 0}
+              >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
                 Confirm Booking
               </Button>
             </div>

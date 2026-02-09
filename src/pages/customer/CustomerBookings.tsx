@@ -7,9 +7,20 @@
 
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, CheckCircle2, XCircle, Loader2, MessageSquare, Send, Star, RefreshCcw } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  MessageSquare,
+  Send,
+  Star,
+  RefreshCcw,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -38,7 +49,7 @@ function fmtTime(ts: string) {
 }
 
 function MessageBubble({ m }: { m: ChatMessage }) {
-  const mine = m.senderRole === "user"; // customer side
+  const mine = m.senderRole === "user";
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div
@@ -48,7 +59,11 @@ function MessageBubble({ m }: { m: ChatMessage }) {
         ].join(" ")}
       >
         <div className="whitespace-pre-wrap">{m.text}</div>
-        <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+        <div
+          className={`mt-1 text-[10px] ${
+            mine ? "text-primary-foreground/80" : "text-muted-foreground"
+          }`}
+        >
           {fmtTime(m.createdAt)}
         </div>
       </div>
@@ -72,6 +87,9 @@ function ChatDialog({
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
+  const vendorName = booking?.vendor?.businessName || "Vendor";
+  const serviceName = booking?.service?.name || "Service";
+
   const load = async () => {
     if (!booking?._id) return;
     try {
@@ -81,7 +99,11 @@ function ChatDialog({
       const msgs = await apiListMessages(thread._id);
       setItems(msgs);
     } catch (e: any) {
-      toast({ title: "Chat error", description: e?.message, variant: "destructive" });
+      toast({
+        title: "Chat error",
+        description: e?.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -100,7 +122,11 @@ function ChatDialog({
       setItems((p) => [...p, msg]);
       setText("");
     } catch (e: any) {
-      toast({ title: "Send failed", description: e?.message, variant: "destructive" });
+      toast({
+        title: "Send failed",
+        description: e?.message,
+        variant: "destructive",
+      });
     } finally {
       setSending(false);
     }
@@ -112,7 +138,7 @@ function ChatDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Chat with Vendor
+            Chat with {vendorName}
           </DialogTitle>
         </DialogHeader>
 
@@ -120,20 +146,25 @@ function ChatDialog({
           <div className="rounded-lg border bg-background">
             <div className="flex items-center justify-between border-b px-3 py-2">
               <div className="text-sm">
-                <span className="font-medium">
-                  {booking?.vendor?.user?.businessName || "Vendor"}
+                <span className="font-medium">{vendorName}</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  • {serviceName}
                 </span>
-                <span className="text-muted-foreground"> • {booking?.service?.name || "Service"}</span>
               </div>
               <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
-                <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                <RefreshCcw
+                  className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
             </div>
 
             <div className="h-[340px] overflow-auto p-3 space-y-2">
               {loading ? (
-                <div className="py-10 text-center text-sm text-muted-foreground">Loading chat…</div>
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  Loading chat…
+                </div>
               ) : items.length === 0 ? (
                 <div className="py-10 text-center text-sm text-muted-foreground">
                   No messages yet. Ask about timing, price, details…
@@ -193,7 +224,13 @@ function StarPicker({
           className="rounded p-1"
           aria-label={`${n} star`}
         >
-          <Star className={`h-5 w-5 ${n <= value ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
+          <Star
+            className={`h-5 w-5 ${
+              n <= value
+                ? "fill-yellow-400 text-yellow-400"
+                : "text-muted-foreground"
+            }`}
+          />
         </button>
       ))}
     </div>
@@ -211,7 +248,6 @@ const CustomerBookings = () => {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  // local “already reviewed” tracker (since no list endpoint shown)
   const reviewedKey = "reviewed_booking_ids_v1";
   const [reviewedIds, setReviewedIds] = useState<string[]>(() => {
     try {
@@ -270,7 +306,11 @@ const CustomerBookings = () => {
       toast({ title: "Thanks!", description: "Your review has been submitted." });
       setReviewOpen(false);
     } catch (e: any) {
-      toast({ title: "Review failed", description: e?.message, variant: "destructive" });
+      toast({
+        title: "Review failed",
+        description: e?.message,
+        variant: "destructive",
+      });
     } finally {
       setSubmittingReview(false);
     }
@@ -313,7 +353,10 @@ const CustomerBookings = () => {
 
   const canReview = useMemo(() => {
     if (!selectedBooking?._id) return false;
-    return selectedBooking.status === "completed" && !reviewedIds.includes(selectedBooking._id);
+    return (
+      selectedBooking.status === "completed" &&
+      !reviewedIds.includes(selectedBooking._id)
+    );
   }, [selectedBooking, reviewedIds]);
 
   return (
@@ -337,7 +380,7 @@ const CustomerBookings = () => {
           <div className="space-y-4">
             {items.map((b) => {
               const date = new Date(b.scheduledAt);
-              const vendorName = b.vendor?.user?.businessName || "Vendor";
+              const vendorName = b.vendor?.businessName || "Vendor";
               const alreadyReviewed = reviewedIds.includes(b._id);
 
               return (
@@ -351,7 +394,9 @@ const CustomerBookings = () => {
                           </h3>
                           {getStatusBadge(b.status)}
                           {b.status === "completed" && alreadyReviewed && (
-                            <span className="text-xs text-muted-foreground">• Reviewed</span>
+                            <span className="text-xs text-muted-foreground">
+                              • Reviewed
+                            </span>
                           )}
                         </div>
 
@@ -364,7 +409,10 @@ const CustomerBookings = () => {
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
-                            {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {date.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </span>
                           <span className="flex items-center gap-1">
                             <MapPin className="h-4 w-4" />
@@ -376,7 +424,9 @@ const CustomerBookings = () => {
                       <div className="flex flex-col items-end gap-3">
                         <div className="text-right">
                           <p className="text-sm text-muted-foreground">Total</p>
-                          <p className="font-heading text-xl font-bold">₹{b.totalPrice}</p>
+                          <p className="font-heading text-xl font-bold">
+                            ₹{b.totalPrice}
+                          </p>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
@@ -404,8 +454,12 @@ const CustomerBookings = () => {
           <Card>
             <CardContent className="py-12 text-center">
               <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 font-heading text-lg font-semibold">No bookings yet</h3>
-              <p className="mt-2 text-muted-foreground">Start by booking your first service!</p>
+              <h3 className="mt-4 font-heading text-lg font-semibold">
+                No bookings yet
+              </h3>
+              <p className="mt-2 text-muted-foreground">
+                Start by booking your first service!
+              </p>
               <Button asChild className="mt-4" variant="gradient">
                 <Link to="/services">Browse Services</Link>
               </Button>
@@ -426,15 +480,18 @@ const CustomerBookings = () => {
 
           <div className="space-y-4">
             <div className="text-sm">
-              <div className="font-medium">{selectedBooking?.service?.name || "Service"}</div>
+              <div className="font-medium">
+                {selectedBooking?.service?.name || "Service"}
+              </div>
               <div className="text-muted-foreground">
-                Vendor: {selectedBooking?.vendor?.user?.businessName || "Vendor"}
+                Vendor: {selectedBooking?.vendor?.businessName || "Vendor"}
               </div>
             </div>
 
             {selectedBooking?.status !== "completed" ? (
               <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-                You can leave a review only after the service is marked <strong>Completed</strong>.
+                You can leave a review only after the service is marked{" "}
+                <strong>Completed</strong>.
               </div>
             ) : (
               <>
@@ -467,7 +524,9 @@ const CustomerBookings = () => {
             </Button>
             <Button
               onClick={submitReview}
-              disabled={submittingReview || !canReview || selectedBooking?.status !== "completed"}
+              disabled={
+                submittingReview || !canReview || selectedBooking?.status !== "completed"
+              }
             >
               {submittingReview ? "Submitting…" : "Submit Review"}
             </Button>

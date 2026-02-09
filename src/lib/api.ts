@@ -1,4 +1,7 @@
+// src/lib/api.ts
 import { USER_ROLES } from "@/lib/constants";
+
+/* ---------------- TYPES ---------------- */
 
 type ApiSuccess<T> = {
   success: true;
@@ -14,6 +17,8 @@ type ApiFail = {
 };
 
 type ApiResponse<T> = ApiSuccess<T> | ApiFail;
+
+/* ---------------- CONFIG ---------------- */
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -185,7 +190,16 @@ export type ServiceDoc = {
   price: number;
   durationMinutes?: number;
   isActive: boolean;
-  vendor?: any;
+
+  // ✅ vendor fields needed for customer vendor cards (rating compare)
+  vendor?: {
+    _id: string;
+    businessName?: string;
+    rating?: number;
+    totalJobs?: number;
+    isVerified?: boolean;
+  };
+
   createdAt: string;
 };
 
@@ -526,16 +540,18 @@ export async function apiAIReply(threadId: string, text: string) {
   return res.data.message;
 }
 
-/* ---------------- SETTINGS (NEW) ---------------- */
+/* ---------------- VENDOR CHAT THREADS (NEW) ---------------- */
 
-/**
- * Admin workflow: Notifications / Appearance / General settings
- * Vendor workflow: Vendor settings page
- *
- * Expected backend responses (recommended):
- *  GET  /settings/:role -> { success:true, data:{ settings:{} } }
- *  PUT  /settings/:role -> { success:true, data:{ settings:{} } }
- */
+export async function apiVendorChatThreads() {
+  const res = await request<{ items: ChatThread[] }>(
+    `/chat/vendor/threads`,
+    { method: "GET" },
+    true
+  );
+  return res.data.items;
+}
+
+/* ---------------- SETTINGS (NEW) ---------------- */
 
 export type AppSettings = {
   notifications?: boolean;
@@ -574,13 +590,6 @@ export async function apiUpdateSettings(
 
 /* ---------------- REVIEWS (NEW) ---------------- */
 
-/**
- * Customer can review & rate vendor ONLY after booking completed.
- * Backend recommended:
- *  POST /reviews -> { success:true, data:{ review:{} } }
- *  GET  /vendor/reviews -> { success:true, data:{ items:[] } }
- */
-
 export type ReviewDoc = {
   _id: string;
   booking: string;
@@ -589,6 +598,10 @@ export type ReviewDoc = {
   rating: number;
   comment?: string;
   createdAt: string;
+
+  // optional populated fields
+  service?: { _id: string; name?: string };
+  userObj?: { _id: string; name?: string };
 };
 
 export async function apiCreateReview(payload: {
@@ -604,24 +617,18 @@ export async function apiCreateReview(payload: {
   return res.data.review;
 }
 
+/**
+ * ✅ Vendor reviews list
+ * Backend route you shared: GET /api/reviews/vendor
+ */
 export async function apiVendorReviews() {
   const res = await request<{ items: ReviewDoc[] }>(
-    `/vendor/reviews`,
+    `/reviews/vendor`,
     { method: "GET" },
     true
   );
   return res.data.items;
 }
-/* ---------------- VENDOR CHAT THREADS (NEW) ---------------- */
-export async function apiVendorChatThreads() {
-  const res = await request<{ items: ChatThread[] }>(
-    `/chat/vendor/threads`,
-    { method: "GET" },
-    true
-  );
-  return res.data.items;
-}
-
 
 /* ---------------- CHAT HELPERS (SAFE) ---------------- */
 
