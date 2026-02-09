@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2,
   MapPin,
@@ -35,6 +36,7 @@ const ServiceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [offerings, setOfferings] = useState<ServiceDoc[]>([]);
   const [selectedOfferingId, setSelectedOfferingId] = useState<string>("");
+  const [sortBy, setSortBy] = useState<"createdAt" | "rating" | "price">("createdAt");
 
   // booking form
   const [scheduledAt, setScheduledAt] = useState<string>("");
@@ -58,6 +60,7 @@ const ServiceDetail = () => {
           subcategory: subcategoryBackendId,
           page: 1,
           limit: 50,
+          sortBy,
         });
         setOfferings(res.items || []);
         if (res.items?.length) setSelectedOfferingId(res.items[0]._id);
@@ -73,7 +76,7 @@ const ServiceDetail = () => {
     }
     if (categoryId && subcategoryBackendId) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryId, subcategoryBackendId]);
+  }, [categoryId, subcategoryBackendId, sortBy]);
 
   const selectedOffering = offerings.find((o) => o._id === selectedOfferingId);
 
@@ -194,7 +197,22 @@ const ServiceDetail = () => {
         {/* Offerings */}
         <Card>
           <CardHeader>
-            <CardTitle>Available Providers</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Available Providers</CardTitle>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="sort-select" className="text-sm">Sort by:</Label>
+                <Select value={sortBy} onValueChange={(value: "createdAt" | "rating" | "price") => setSortBy(value)}>
+                  <SelectTrigger id="sort-select" className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="createdAt">Default</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
+                    <SelectItem value="price">Price</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
 
           <CardContent>
@@ -237,10 +255,10 @@ const ServiceDetail = () => {
                       <CardContent className="p-5 flex items-center justify-between">
                         {/* LEFT */}
                         <div className="space-y-1">
-                          <h3 className="font-semibold text-lg">{vendorName}</h3>
+                          <h3 className="font-semibold text-lg">{o.name}</h3>
 
                           <p className="text-sm text-muted-foreground">
-                            {o.subcategory || "Service Provider"}
+                            by {vendorName}
                           </p>
 
                           {/* ⭐ Rating */}

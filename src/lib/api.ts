@@ -210,6 +210,7 @@ export async function apiListServices(params?: {
   vendorId?: string;
   page?: number;
   limit?: number;
+  sortBy?: "createdAt" | "rating" | "price";
 }) {
   const sp = new URLSearchParams();
   if (params?.q) sp.set("q", params.q);
@@ -218,6 +219,7 @@ export async function apiListServices(params?: {
   if (params?.vendorId) sp.set("vendorId", params.vendorId);
   if (params?.page) sp.set("page", String(params.page));
   if (params?.limit) sp.set("limit", String(params.limit));
+  if (params?.sortBy) sp.set("sortBy", params.sortBy);
 
   const res = await request<{
     items: ServiceDoc[];
@@ -308,6 +310,35 @@ export async function apiVendorUpdateBookingStatus(
     ...res.data.booking,
     status: mapBackendStatusToFrontend(res.data.booking.status),
   };
+}
+
+/* ---------------- VENDOR PROFILE ---------------- */
+
+export async function apiGetVendorProfile() {
+  const res = await request<{ vendor: any }>(`/vendor/me`, { method: "GET" }, true);
+  return res.data.vendor;
+}
+
+export async function apiUpdateVendorProfile(data: any) {
+  const res = await request<{ vendor: any }>(`/vendor/me`, { method: "PUT", body: JSON.stringify(data) }, true);
+  return res.data.vendor;
+}
+
+/* ---------------- USER PROFILE ---------------- */
+
+export async function apiUpdateProfile(data: any) {
+  const res = await request<{ user: any }>(`/users/me`, { method: "PUT", body: JSON.stringify(data) }, true);
+  return res.data.user;
+}
+
+export async function apiChangePassword(currentPassword: string, newPassword: string) {
+  const res = await request<{ message: string }>(`/auth/change-password`, { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }, true);
+  return res.data;
+}
+
+export async function apiDeleteAccount() {
+  const res = await request<{ message: string }>(`/auth/me`, { method: "DELETE" }, true);
+  return res.data;
 }
 
 /* ---------------- VENDOR SERVICES ---------------- */
