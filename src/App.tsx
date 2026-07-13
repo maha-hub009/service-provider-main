@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { USER_ROLES } from "@/lib/constants";
+import { ThemeProvider } from "@/lib/ThemeProvider";
+import "@/styles/animations.css";
 
 // Pages
 import Index from "./pages/Index";
@@ -40,6 +42,7 @@ import VendorSettings from "./pages/vendor/VendorSettings";
 
 // Customer Pages
 import CustomerBookings from "./pages/customer/CustomerBookings";
+import BookingChat from "./pages/chat/BookingChat";
 
 const queryClient = new QueryClient();
 
@@ -60,12 +63,13 @@ const ScrollToTop = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <ScrollToTop />
-          <Routes>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <ScrollToTop />
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/services/:categoryId?" element={<Services />} />
@@ -181,12 +185,21 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/chat/booking/:bookingId"
+              element={
+                <ProtectedRoute allowedRoles={[USER_ROLES.CUSTOMER, USER_ROLES.VENDOR]} redirectTo="/login">
+                  <BookingChat />
+                </ProtectedRoute>
+              }
+            />
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </ThemeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

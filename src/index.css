@@ -11,24 +11,24 @@
 @layer base {
   :root {
     --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    --foreground: 17 25% 7%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 17 25% 7%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 17 25% 7%;
 
-    --primary: 221 83% 53%;
+    --primary: 226 84% 64%;              /* Will be overridden by ThemeProvider */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary-foreground: 17 25% 7%;
 
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 32 95% 44%;
+    --accent: 243 48% 32%;               /* Will be overridden by ThemeProvider */
     --accent-foreground: 0 0% 100%;
 
     --success: 142 76% 36%;
@@ -81,8 +81,8 @@
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 226 84% 64%;              /* Will be overridden by ThemeProvider */
+    --primary-foreground: 210 40% 98%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -90,7 +90,7 @@
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 32 95% 50%;
+    --accent: 243 48% 32%;                /* Will be overridden by ThemeProvider */
     --accent-foreground: 0 0% 100%;
 
     --success: 142 76% 42%;
@@ -133,25 +133,20 @@
 }
 
 @layer utilities {
-  .text-gradient-primary {
-    @apply bg-clip-text text-transparent;
-    background-image: var(--gradient-primary);
-  }
-
   .bg-gradient-primary {
-    background-image: var(--gradient-primary);
+    @apply bg-primary;
   }
 
   .bg-gradient-accent {
-    background-image: var(--gradient-accent);
+    @apply bg-accent;
   }
 
   .bg-gradient-hero {
-    background-image: var(--gradient-hero);
+    @apply bg-primary/5;
   }
 
   .bg-gradient-service-icon {
-    background-image: var(--gradient-service-icon);
+    @apply bg-primary;
   }
 
   .shadow-card {

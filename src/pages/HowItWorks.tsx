@@ -45,7 +45,7 @@ const HowItWorks = () => {
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {steps.map((step) => (
               <div key={step.number} className="text-center">
-                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-primary">
+                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary">
                   <step.icon className="h-8 w-8 text-primary-foreground" />
                 </div>
                 <div className="mb-4 text-2xl font-bold text-primary">{step.number}</div>
@@ -56,7 +56,7 @@ const HowItWorks = () => {
           </div>
 
           <div className="mt-16 text-center">
-            <div className="rounded-2xl bg-gradient-primary p-8 text-primary-foreground md:p-12">
+            <div className="rounded-2xl bg-primary p-8 text-primary-foreground md:p-12">
               <h2 className="font-heading text-2xl font-bold md:text-3xl">
                 Ready to Get Started?
               </h2>

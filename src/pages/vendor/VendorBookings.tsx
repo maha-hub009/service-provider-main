@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { VendorLayout } from "@/components/layout/VendorLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +41,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiVendorBookings, apiVendorUpdateBookingStatus, Booking } from "@/lib/api";
@@ -218,6 +220,14 @@ const VendorBookings = () => {
                                     <DropdownMenuItem onClick={() => openUpdate(b)}>
                                       Update Status
                                     </DropdownMenuItem>
+                                    {(b.status === 'accepted' || b.status === 'completed') && (
+                                      <DropdownMenuItem asChild>
+                                        <Link to={`/chat/booking/${b._id}`}>
+                                          <MessageCircle className="h-4 w-4 mr-2" />
+                                          Chat
+                                        </Link>
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </TableCell>
@@ -246,7 +256,7 @@ const VendorBookings = () => {
                 <div><strong>Customer:</strong> {selectedBooking.user?.name} ({selectedBooking.user?.phone})</div>
                 <div><strong>Address:</strong> {selectedBooking.address}</div>
                 <div><strong>Status:</strong> {selectedBooking.status}</div>
-                <div><strong>Total:</strong> ₹{selectedBooking.totalPrice}</div>
+                <div><strong>Total:</strong> ₹{selectedBooking.amount}</div>
               </div>
             )}
 

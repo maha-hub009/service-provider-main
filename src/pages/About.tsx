@@ -74,7 +74,7 @@ const About = () => {
                   with a network of trusted professionals.
                 </p>
               </div>
-              <div className="rounded-2xl bg-gradient-primary p-8 text-primary-foreground">
+              <div className="rounded-2xl bg-primary p-8 text-primary-foreground">
                 <h3 className="font-heading text-xl font-semibold">Why Choose Us?</h3>
                 <ul className="mt-4 space-y-3">
                   <li className="flex items-center gap-3">
@@ -106,7 +106,7 @@ const About = () => {
             <div className="grid gap-8 md:grid-cols-2">
               {values.map((value) => (
                 <div key={value.title} className="flex gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
                     <value.icon className="h-6 w-6 text-primary-foreground" />
                   </div>
                   <div>

@@ -16,60 +16,66 @@ export const HeroSection = () => {
       <div className="container relative py-20 lg:py-32">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           {/* Content */}
-          <div className="space-y-8 animate-fade-in">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary border border-primary/20">
+          <div className="space-y-8">
+            <div className="hero-title inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary border border-primary/20">
               <Star className="h-4 w-4 fill-primary" />
               <span>Trusted by 50,000+ customers worldwide</span>
             </div>
             
             <div>
-              <h1 className="font-heading text-5xl font-bold leading-tight tracking-tight md:text-6xl lg:text-7xl">
+              <h1 className="hero-title font-heading text-5xl font-bold leading-tight tracking-tight md:text-6xl lg:text-7xl">
                 Professional Services at{" "}
                 <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">Your Doorstep</span>
               </h1>
-              <p className="mt-4 max-w-lg text-lg text-muted-foreground leading-relaxed">
+              <p className="hero-subtitle mt-4 max-w-lg text-lg text-muted-foreground leading-relaxed">
                 Connect with verified professionals for home repairs, cleaning, vehicle services, and more. Quality guaranteed with transparent pricing.
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:shadow-lg" asChild>
+            <div className="hero-cta flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:shadow-lg transition-all" asChild>
                 <Link to="/services">
                   Explore Services
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold" asChild>
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all" asChild>
                 <Link to="/vendor/register">Become a Vendor</Link>
               </Button>
             </div>
 
             {/* Trust Badges */}
             <div className="grid grid-cols-1 gap-3 pt-4 sm:grid-cols-3">
-              <div className="flex items-center gap-3 rounded-lg bg-white/50 dark:bg-white/5 p-3 border border-white/10">
-                <div className="rounded-lg bg-success/10 p-2">
-                  <Shield className="h-5 w-5 text-success" />
+              <div className="animate-in-fade-up rounded-lg bg-white/50 dark:bg-white/5 p-3 border border-white/10 hover:border-primary/50 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-success/10 p-2">
+                    <Shield className="h-5 w-5 text-success" />
+                  </div>
+                  <span className="text-sm font-medium">Verified Pros</span>
                 </div>
-                <span className="text-sm font-medium">Verified Pros</span>
               </div>
-              <div className="flex items-center gap-3 rounded-lg bg-white/50 dark:bg-white/5 p-3 border border-white/10">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Clock className="h-5 w-5 text-primary" />
+              <div className="animate-in-fade-up rounded-lg bg-white/50 dark:bg-white/5 p-3 border border-white/10 hover:border-primary/50 transition-all" style={{ animationDelay: "0.1s" }}>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-sm font-medium">Same Day Service</span>
                 </div>
-                <span className="text-sm font-medium">Same Day Service</span>
               </div>
-              <div className="flex items-center gap-3 rounded-lg bg-white/50 dark:bg-white/5 p-3 border border-white/10">
-                <div className="rounded-lg bg-accent/10 p-2">
-                  <CheckCircle2 className="h-5 w-5 text-accent" />
+              <div className="animate-in-fade-up rounded-lg bg-white/50 dark:bg-white/5 p-3 border border-white/10 hover:border-primary/50 transition-all" style={{ animationDelay: "0.2s" }}>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-accent/10 p-2">
+                    <CheckCircle2 className="h-5 w-5 text-accent" />
+                  </div>
+                  <span className="text-sm font-medium">Guaranteed Quality</span>
                 </div>
-                <span className="text-sm font-medium">Guaranteed Quality</span>
               </div>
             </div>
           </div>
 
           {/* Image */}
-          <div className="relative animate-slide-up lg:ml-8">
-            <div className="relative overflow-hidden rounded-3xl shadow-2xl border border-white/10">
+          <div className="relative animate-in-slide-right lg:ml-8">
+            <div className="relative overflow-hidden rounded-3xl shadow-2xl border border-white/10 hover:shadow-3xl transition-all">
               <img
                 src={heroImage}
                 alt="Professional service providers"
@@ -79,7 +85,7 @@ export const HeroSection = () => {
             </div>
             
             {/* Floating Card */}
-            <div className="absolute -bottom-6 -left-6 rounded-2xl bg-card p-5 shadow-xl border border-white/10 animate-float backdrop-blur-sm">
+            <div className="animate-in-scale absolute -bottom-6 -left-6 rounded-2xl bg-card p-5 shadow-xl border border-white/10 backdrop-blur-sm hover:shadow-2xl transition-all">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success/10 border border-success/20">
                   <CheckCircle2 className="h-7 w-7 text-success" />
@@ -102,31 +108,32 @@ export const CategoriesSection = () => {
     <section className="py-20 lg:py-28 bg-gradient-to-b from-background via-muted/20 to-background">
       <div className="container">
         <div className="mb-16 text-center space-y-4">
-          <div className="inline-block">
+          <div className="inline-block animate-in-scale">
             <span className="rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary border border-primary/20">
               Our Services
             </span>
           </div>
-          <h2 className="font-heading text-4xl font-bold md:text-5xl">
+          <h2 className="font-heading text-4xl font-bold md:text-5xl animate-in-fade-up">
             Explore Professional Categories
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground animate-in-fade-up" style={{ animationDelay: "0.1s" }}>
             From home repairs to vehicle services, find verified professionals in your area
           </p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-2">
-          {SERVICE_CATEGORIES.map((category) => (
+          {SERVICE_CATEGORIES.map((category, idx) => (
             <Link
               key={category.id}
               to={`/services/${category.id}`}
-              className="group rounded-2xl border bg-card/50 backdrop-blur-sm p-8 transition-all duration-300 hover:shadow-xl hover:border-primary/50 hover:bg-card/80 relative overflow-hidden"
+              className="card-animate group rounded-2xl border bg-card/50 backdrop-blur-sm p-8 transition-all duration-300 hover:shadow-xl hover:border-primary/50 hover:bg-card/80 relative overflow-hidden"
+              style={{ animationDelay: `${idx * 0.1}s` }}
             >
               <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl group-hover:blur-3xl transition-all" />
               
               <div className="mb-6 flex items-start justify-between relative z-10">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-service-icon">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent group-hover:from-accent group-hover:to-primary transition-all">
                     <category.icon className="h-8 w-8 text-white" />
                   </div>
                   <div>

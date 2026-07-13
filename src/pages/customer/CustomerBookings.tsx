@@ -2,15 +2,29 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Calendar, Clock, MapPin, CheckCircle2, XCircle, Loader2, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { apiCustomerBookings, Booking } from "@/lib/api";
+import { apiCustomerBookings, Booking, apiCreateReview } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 const CustomerBookings = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [items, setItems] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -23,6 +37,24 @@ const CustomerBookings = () => {
     }
     load();
   }, []);
+
+  const openRatingModal = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setRating(5);
+    setComment("");
+    setRatingModalOpen(true);
+  };
+
+  const submitRating = async () => {
+    if (!selectedBooking?.service?._id) return;
+    try {
+      await apiCreateReview(selectedBooking.service._id, { rating, comment: comment || undefined });
+      toast({ title: "Review submitted", description: "Thank you for your feedback!" });
+      setRatingModalOpen(false);
+    } catch (e: any) {
+      toast({ title: "Failed to submit review", description: e?.message, variant: "destructive" });
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -111,6 +143,16 @@ const CustomerBookings = () => {
                           <p className="text-sm text-muted-foreground">Total</p>
                           <p className="font-heading text-xl font-bold">₹{b.totalPrice}</p>
                         </div>
+                        {b.status === 'completed' && (
+                          <Button variant="outline" onClick={() => openRatingModal(b)}>
+                            Rate Service
+                          </Button>
+                        )}
+                        {(b.status === 'accepted' || b.status === 'completed') && (
+                          <Button asChild variant="outline">
+                            <Link to={`/chat/booking/${b._id}`}>Chat</Link>
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -130,6 +172,47 @@ const CustomerBookings = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Rating Modal */}
+        <Dialog open={ratingModalOpen} onOpenChange={setRatingModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rate Service</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Rating</label>
+                <div className="flex gap-1 mt-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setRating(star)}
+                      className={`p-1 ${rating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
+                    >
+                      <Star className="h-6 w-6 fill-current" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Comment (Optional)</label>
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Share your experience..."
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRatingModalOpen(false)}>Cancel</Button>
+              <Button onClick={submitRating}>Submit Review</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

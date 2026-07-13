@@ -49,7 +49,7 @@ const Login = () => {
           {/* Logo */}
           <div className="text-center">
             <Link to="/" className="inline-flex items-center gap-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-primary">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
                 <Wrench className="h-6 w-6 text-primary-foreground" />
               </div>
             </Link>

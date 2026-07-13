@@ -8,6 +8,8 @@ import {
   CTASection,
 } from "@/components/home/HomeSections";
 import CustomerHome from "./customer/CustomerHome";
+import AdminHome from "./admin/AdminHome";
+import VendorHome from "./vendor/VendorHome";
 
 const Index = () => {
   const { user } = useAuth();
@@ -15,6 +17,14 @@ const Index = () => {
   // Show customer-specific home if user is logged in as customer
   if (user && user.role === USER_ROLES.CUSTOMER) {
     return <CustomerHome />;
+  }
+
+  if (user && user.role === USER_ROLES.ADMIN) {
+    return <AdminHome />;
+  }
+
+  if (user && user.role === USER_ROLES.VENDOR) {
+    return <VendorHome />;
   }
 
   // Show default home for guests and other users

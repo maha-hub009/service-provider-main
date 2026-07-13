@@ -56,7 +56,7 @@ const Services = () => {
   return (
     <MainLayout>
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-accent/10 py-16 md:py-24">
+      <div className="relative overflow-hidden bg-background py-16 md:py-24">
         <div className="absolute inset-0 opacity-30">
           <div className="absolute -left-4 top-0 h-72 w-72 rounded-full bg-primary/30 blur-3xl" />
           <div className="absolute -right-4 bottom-0 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
@@ -80,7 +80,6 @@ const Services = () => {
 
             {/* Search */}
             <form onSubmit={handleSearchSubmit} className="relative mt-10 group">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-500" />
               <div className="relative flex items-center gap-2 bg-white dark:bg-background border border-border/50 rounded-2xl p-2 shadow-lg">
                 <Search className="h-5 w-5 text-muted-foreground ml-3" />
                 <Input
@@ -91,7 +90,7 @@ const Services = () => {
                 />
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-primary to-accent hover:shadow-lg rounded-xl"
+                  className="bg-primary text-primary-foreground hover:shadow-lg rounded-xl"
                   size="sm"
                 >
                   <Search className="h-4 w-4" />
@@ -112,7 +111,7 @@ const Services = () => {
                 <Link
                   key={category.id}
                   to={`/services/${category.id}`}
-                  className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/50 backdrop-blur-sm px-4 py-2 text-sm font-medium transition-all duration-300 hover:border-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-accent/10 hover:shadow-md"
+                  className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/50 backdrop-blur-sm px-4 py-2 text-sm font-medium transition-all duration-300 hover:border-primary hover:bg-primary/10 hover:shadow-md"
                 >
                   <category.icon className="h-4 w-4" />
                   {category.name}
@@ -145,7 +144,7 @@ const Services = () => {
 
                   <div className="relative z-10 space-y-4">
                     {/* Icon */}
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-service-icon shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-lg group-hover:scale-110 transition-transform duration-300">
                       <service.icon className="h-7 w-7 text-white" />
                     </div>
 

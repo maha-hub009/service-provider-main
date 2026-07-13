@@ -29,10 +29,10 @@ const CustomerHome = () => {
   return (
     <MainLayout>
       {/* Welcome Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-accent/10 py-12 md:py-20">
+      <section className="relative overflow-hidden bg-background py-12 md:py-20">
         <div className="absolute inset-0 opacity-20">
-          <div className="absolute -left-4 top-0 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
-          <div className="absolute -right-4 bottom-0 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
+          <div className="absolute -left-4 top-0 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -right-4 bottom-0 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
         </div>
 
         <div className="container relative">
@@ -110,7 +110,7 @@ const CustomerHome = () => {
               <Card key={category.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="rounded-lg bg-gradient-primary p-2">
+                    <div className="rounded-lg bg-primary p-2">
                       <category.icon className="h-6 w-6 text-primary-foreground" />
                     </div>
                     <CardTitle className="text-xl">{category.name}</CardTitle>

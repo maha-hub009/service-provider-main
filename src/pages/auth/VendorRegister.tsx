@@ -82,7 +82,7 @@ const VendorRegister = () => {
           {/* Logo */}
           <div className="text-center">
             <Link to="/" className="inline-flex items-center gap-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-accent">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
                 <Briefcase className="h-6 w-6 text-accent-foreground" />
               </div>
             </Link>
@@ -215,8 +215,7 @@ const VendorRegister = () => {
 
             <Button
               type="submit"
-              className="w-full h-12"
-              variant="accent"
+              className="w-full h-12 bg-[hsl(var(--button-primary))] hover:bg-[hsl(var(--button-accent))] text-[hsl(var(--primary-foreground))]"
               disabled={isLoading}
             >
               {isLoading ? (

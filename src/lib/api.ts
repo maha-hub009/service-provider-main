@@ -23,12 +23,12 @@ function getToken() {
 
 /** backend: user/vendor/admin | frontend: customer/vendor/admin */
 function mapBackendRoleToFrontend(role: string) {
-  if (role === "user") return USER_ROLES.CUSTOMER;
+  if (role === "customer") return USER_ROLES.CUSTOMER;
   return role;
 }
 function mapFrontendRoleToBackend(role?: string) {
   if (!role) return undefined;
-  if (role === USER_ROLES.CUSTOMER) return "user";
+  if (role === USER_ROLES.CUSTOMER) return "customer";
   return role;
 }
 
@@ -221,6 +221,28 @@ export async function apiGetService(id: string) {
   return res.data.service;
 }
 
+/* ---------------- REVIEWS ---------------- */
+
+export type Review = {
+  _id: string;
+  serviceId: string;
+  customerId: any;
+  vendorId?: any;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+};
+
+export async function apiListReviews(serviceId: string) {
+  const res = await request<{ items: Review[] }>(`/services/${serviceId}/reviews`, { method: "GET" }, false);
+  return res.data.items;
+}
+
+export async function apiCreateReview(serviceId: string, payload: { rating: number; comment?: string }) {
+  const res = await request<{ review: Review }>(`/services/${serviceId}/reviews`, { method: "POST", body: JSON.stringify(payload) }, true);
+  return res.data.review;
+}
+
 /* ---------------- BOOKINGS ---------------- */
 
 export type Booking = {
@@ -229,7 +251,7 @@ export type Booking = {
   scheduledAt: string;
   address: string;
   notes?: string;
-  totalPrice: number;
+  amount: number;
   service?: any;
   user?: any;
   vendor?: any;

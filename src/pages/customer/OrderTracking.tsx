@@ -149,7 +149,7 @@ const OrderTracking = () => {
                   </div>
 
                   {/* AI Insights */}
-                  <div className="rounded-lg bg-gradient-to-r from-pink-50 to-rose-50 p-4 border">
+                  <div className="rounded-lg bg-primary/5 p-4 border">
                     <div className="flex items-center gap-2 mb-3">
                       <Brain className="h-5 w-5 text-blue-600" />
                       <h3 className="font-semibold text-blue-900">AI Insights</h3>

@@ -3,10 +3,11 @@ import { VendorLayout } from "@/components/layout/VendorLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Calendar, DollarSign, Loader2, ArrowRight } from "lucide-react";
+import { Package, Calendar, DollarSign, Loader2, ArrowRight, TrendingUp, Star, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
-import { apiVendorStats } from "@/lib/api";
+import { apiVendorStats, Booking } from "@/lib/api";
 
 const VendorDashboard = () => {
   const { user } = useAuth();
@@ -17,14 +18,31 @@ const VendorDashboard = () => {
     totalBookings: 0,
     pendingBookings: 0,
     completedBookings: 0,
-    recentBookings: [],
+    recentBookings: [] as Booking[],
+    totalEarnings: 0,
+    averageRating: 0,
+    completionRate: 0,
   });
+
+  const earningsData = [
+    { month: 'Jan', earnings: 1200 },
+    { month: 'Feb', earnings: 1900 },
+    { month: 'Mar', earnings: 3000 },
+    { month: 'Apr', earnings: 5000 },
+    { month: 'May', earnings: 4500 },
+    { month: 'Jun', earnings: stats.totalEarnings },
+  ];
 
   useEffect(() => {
     const loadStats = async () => {
       try {
         const data = await apiVendorStats();
-        setStats(data);
+        setStats({
+          ...data,
+          totalEarnings: data.totalEarnings || 0,
+          averageRating: data.averageRating || 0,
+          completionRate: data.completionRate || 0,
+        });
       } catch (error) {
         toast({
           title: "Failed to load statistics",
@@ -55,16 +73,19 @@ const VendorDashboard = () => {
     {
       label: "Pending",
       value: stats.pendingBookings,
-      icon: DollarSign,
+      icon: Clock,
       color: "from-purple-50 to-purple-100 border-purple-200",
     },
     {
       label: "Completed",
       value: stats.completedBookings,
-      icon: Package,
+      icon: CheckCircle,
       color: "from-orange-50 to-orange-100 border-orange-200",
     },
   ];
+
+  const upcomingBookings = stats.recentBookings.filter((booking) => new Date(booking.scheduledAt) > new Date());
+  const recentCompletedBookings = stats.recentBookings.filter((booking) => booking.status === "completed").slice(0, 3);
 
   if (loading) {
     return (
@@ -94,7 +115,7 @@ const VendorDashboard = () => {
           {statCards.map((stat) => {
             const Icon = stat.icon;
             return (
-              <Card key={stat.label} className={`bg-gradient-to-br ${stat.color}`}>
+              <Card key={stat.label} className={`${stat.color}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-semibold">
@@ -111,6 +132,63 @@ const VendorDashboard = () => {
               </Card>
             );
           })}
+        </div>
+
+        {/* Revenue and Performance */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Earnings Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Total Earnings</span>
+                <span className="text-2xl font-bold">${stats.totalEarnings}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-green-600 h-2 rounded-full" style={{ width: `${Math.min((stats.totalEarnings / 5000) * 100, 100)}%` }}></div>
+              </div>
+              <p className="text-xs text-muted-foreground">Monthly goal: $5,000</p>
+              <ResponsiveContainer width="100%" height={150}>
+                <LineChart data={earningsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="earnings" stroke="#10b981" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Performance Metrics
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Average Rating</span>
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <span className="font-semibold">{stats.averageRating.toFixed(1)}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Completion Rate</span>
+                <span className="font-semibold">{stats.completionRate}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Customer Satisfaction</span>
+                <span className="font-semibold text-green-600">High</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Quick Actions */}
@@ -162,26 +240,67 @@ const VendorDashboard = () => {
         </div>
 
         {/* Recent Bookings */}
-        {stats.recentBookings && stats.recentBookings.length > 0 && (
+        {recentCompletedBookings && recentCompletedBookings.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Recent Bookings</CardTitle>
+              <CardTitle>Recent Completed Bookings</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {stats.recentBookings.map((booking: any) => (
+                {recentCompletedBookings.map((booking: Booking) => (
                   <div
                     key={booking._id}
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
-                    <div>
-                      <p className="font-medium">{booking.serviceId?.name || "Service"}</p>
+                    <div className="flex-1">
+                      <p className="font-medium">{booking.service?.name || "Service"}</p>
                       <p className="text-sm text-muted-foreground">
-                        {booking.customerId?.name || "Customer"}
+                        {booking.user?.name || "Customer"} - {new Date(booking.scheduledAt).toLocaleDateString()}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Amount: ${booking.amount}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs">4.5</span>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                        {booking.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Upcoming Bookings */}
+        {upcomingBookings && upcomingBookings.length > 0 && (
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-800">
+                <AlertCircle className="h-5 w-5" />
+                Upcoming Bookings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {upcomingBookings.slice(0, 3).map((booking: Booking) => (
+                  <div
+                    key={booking._id}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-white"
+                  >
+                    <div>
+                      <p className="font-medium">{booking.service?.name || "Service"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {booking.user?.name || "Customer"} - {new Date(booking.scheduledAt).toLocaleString()}
                       </p>
                     </div>
                     <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                      {booking.status}
+                      Upcoming
                     </span>
                   </div>
                 ))}

@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, MapPin, Clock, IndianRupee } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiCreateBooking, apiListServices, ServiceDoc } from "@/lib/api";
+import { apiCreateBooking, apiListServices, apiListReviews, apiCreateReview, ServiceDoc, Review } from "@/lib/api";
+import { Textarea } from "@/components/ui/textarea";
 
 const ServiceDetail = () => {
   const { categoryId, serviceId } = useParams();
@@ -30,6 +31,9 @@ const ServiceDetail = () => {
   const [address, setAddress] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewComment, setReviewComment] = useState<string>("");
 
   const title = selectedSub?.name || "Service";
   const categoryName = selectedCategory?.name || "Category";
@@ -52,6 +56,15 @@ const ServiceDetail = () => {
         });
         setOfferings(res.items || []);
         if (res.items?.length) setSelectedOfferingId(res.items[0]._id);
+        // load reviews for first offering/service
+        if (res.items?.length) {
+          try {
+            const r = await apiListReviews(res.items[0]._id);
+            setReviews(r || []);
+          } catch (e) {
+            // ignore
+          }
+        }
       } catch (e: any) {
         toast({ title: "Failed to load services", description: e?.message, variant: "destructive" });
       } finally {
@@ -109,6 +122,28 @@ const ServiceDetail = () => {
     }
   };
 
+  const submitReview = async () => {
+    if (!isAuthenticated) {
+      toast({ title: "Login required", description: "Please login to leave a review.", variant: "destructive" });
+      return;
+    }
+    if (user?.role !== "customer") {
+      toast({ title: "Only customers can review", description: "Switch to customer account.", variant: "destructive" });
+      return;
+    }
+    if (!selectedOfferingId) return toast({ title: "Select service", variant: "destructive" });
+
+    try {
+      const rev = await apiCreateReview(selectedOfferingId, { rating: reviewRating, comment: reviewComment });
+      setReviews((s) => [rev, ...s]);
+      setReviewComment("");
+      setReviewRating(5);
+      toast({ title: "Review submitted" });
+    } catch (e: any) {
+      toast({ title: "Failed to submit review", description: e?.message, variant: "destructive" });
+    }
+  };
+
   if (!selectedCategory || !selectedSub) {
     return (
       <MainLayout>
@@ -119,6 +154,47 @@ const ServiceDetail = () => {
               <Button asChild className="mt-4">
                 <Link to="/services">Back to Services</Link>
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Reviews */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Reviews</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {reviews.length === 0 ? (
+                <p className="text-muted-foreground">No reviews yet. Be the first to review.</p>
+              ) : (
+                <div className="space-y-3">
+                  {reviews.map((r) => (
+                    <div key={r._id} className="border rounded-md p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">{r.customerId?.name || "Customer"}</div>
+                        <div className="text-sm text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</div>
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">Rating: {r.rating} / 5</div>
+                      {r.comment && <div className="mt-2">{r.comment}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm">Your Rating</label>
+                  <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))} className="ml-2 rounded-md border px-2 py-1">
+                    {[5,4,3,2,1].map((n) => <option key={n} value={n}>{n} ⭐</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm">Comment</label>
+                  <Textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="Share your experience..." />
+                </div>
+                <div>
+                  <Button onClick={submitReview}>Submit Review</Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
