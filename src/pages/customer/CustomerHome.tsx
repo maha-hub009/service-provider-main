@@ -1,30 +1,40 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Zap, Clock, Shield, MapPin, BarChart3, Settings } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ArrowRight, Zap, Clock, Shield, MapPin, BarChart3, Calendar } from "lucide-react";
+import { Link } from "react-router-dom";
 import { SERVICE_CATEGORIES } from "@/lib/constants";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiCustomerBookings, Booking } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const CustomerHome = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
+
+  const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
         const data = await apiCustomerBookings();
-        setRecentBookings(data.slice(0, 3));
+        setAllBookings(data || []);
       } finally {
         setLoading(false);
       }
     }
     load();
   }, []);
+
+  const recentBookings = useMemo(() => allBookings.slice(0, 3), [allBookings]);
+  const totalBookingsCount = allBookings.length;
 
   return (
     <MainLayout>
@@ -73,7 +83,9 @@ const CustomerHome = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Total Bookings</p>
-                      <p className="text-2xl font-bold">{recentBookings.length || 0}</p>
+                      <p className="text-2xl font-bold">
+                        {loading ? "—" : totalBookingsCount}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -139,48 +151,78 @@ const CustomerHome = () => {
       </section>
 
       {/* Recent Bookings */}
-      {!loading && recentBookings.length > 0 && (
-        <section className="py-16 lg:py-24 bg-muted/50">
-          <div className="container">
-            <div className="mb-8 flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-bold">Recent Bookings</h2>
-                <p className="mt-2 text-muted-foreground">Your latest service requests</p>
-              </div>
-              <Button variant="outline" asChild>
-                <Link to="/customer/bookings">View All</Link>
-              </Button>
+      <section className="py-16 lg:py-24 bg-muted/50">
+        <div className="container">
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold">Recent Bookings</h2>
+              <p className="mt-2 text-muted-foreground">Your latest service requests</p>
             </div>
+            <Button variant="outline" asChild>
+              <Link to="/customer/bookings">View All</Link>
+            </Button>
+          </div>
 
+          {loading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-4 w-28 mt-2" />
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-9 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : recentBookings.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {recentBookings.map((booking) => (
                 <Card key={booking._id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <CardTitle className="text-lg">{booking.service?.name || "Service"}</CardTitle>
-                        <CardDescription>{booking.vendor?.businessName || "Vendor"}</CardDescription>
+                        <CardTitle className="text-lg">
+                          {booking.service?.name || "Service"}
+                        </CardTitle>
+                        <CardDescription>
+                          {booking.vendor?.businessName || "Vendor"}
+                        </CardDescription>
                       </div>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
-                        booking.status === "completed" ? "bg-success/10 text-success" :
-                        booking.status === "accepted" ? "bg-primary/10 text-primary" :
-                        "bg-warning/10 text-warning"
-                      }`}>
+
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
+                          booking.status === "completed"
+                            ? "bg-success/10 text-success"
+                            : booking.status === "accepted"
+                            ? "bg-primary/10 text-primary"
+                            : booking.status === "cancelled"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-warning/10 text-warning"
+                        }`}
+                      >
                         {booking.status}
                       </span>
                     </div>
                   </CardHeader>
+
                   <CardContent className="space-y-4">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
+                      <Calendar className="h-4 w-4" />
                       <span>{new Date(booking.scheduledAt).toLocaleDateString()}</span>
                     </div>
+
                     {booking.address && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="h-4 w-4" />
-                        <span>{booking.address}</span>
+                        <span className="line-clamp-2">{booking.address}</span>
                       </div>
                     )}
+
                     <Button variant="outline" size="sm" className="w-full" asChild>
                       <Link to="/customer/bookings">View Details</Link>
                     </Button>
@@ -188,16 +230,34 @@ const CustomerHome = () => {
                 </Card>
               ))}
             </div>
-          </div>
-        </section>
-      )}
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="py-12 text-center">
+                <Clock className="mx-auto h-10 w-10 text-muted-foreground" />
+                <h3 className="mt-3 text-lg font-semibold">No bookings yet</h3>
+                <p className="mt-1 text-muted-foreground">
+                  Book your first service and track it here.
+                </p>
+                <Button className="mt-4" asChild>
+                  <Link to="/services">
+                    Browse Services
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </section>
 
       {/* Features Section */}
       <section className="py-16 lg:py-24">
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold">Why Choose Us</h2>
-            <p className="mt-4 text-lg text-muted-foreground">Everything you need for quality home services</p>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Everything you need for quality home services
+            </p>
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
@@ -205,18 +265,18 @@ const CustomerHome = () => {
               {
                 icon: Shield,
                 title: "Verified Professionals",
-                description: "All our service providers are verified and rated by customers."
+                description: "All our service providers are verified and rated by customers.",
               },
               {
                 icon: Clock,
                 title: "Fast Scheduling",
-                description: "Book services in minutes with same-day or next-day availability."
+                description: "Book services in minutes with same-day or next-day availability.",
               },
               {
                 icon: Zap,
                 title: "Easy Management",
-                description: "Track your bookings and communicate with service providers effortlessly."
-              }
+                description: "Track your bookings and communicate with service providers effortlessly.",
+              },
             ].map((feature, index) => (
               <Card key={index} className="border-0 bg-card/50">
                 <CardContent className="pt-6">

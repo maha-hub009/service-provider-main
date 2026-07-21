@@ -1,3 +1,9 @@
+/* =========================
+   VendorBookings.tsx (FULL UPDATED)
+   - Adds Customer ↔ Vendor Chat per booking
+   - Keeps existing flow (status update)
+========================= */
+
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { VendorLayout } from "@/components/layout/VendorLayout";
@@ -34,6 +40,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   Search,
   MoreHorizontal,
@@ -41,10 +49,24 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+<<<<<<< HEAD
   MessageCircle,
+=======
+  MessageSquare,
+  Send,
+  RefreshCcw,
+>>>>>>> 73ab25727ee0b368cfec7799a1c5439700f5a4cb
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiVendorBookings, apiVendorUpdateBookingStatus, Booking } from "@/lib/api";
+import {
+  apiVendorBookings,
+  apiVendorUpdateBookingStatus,
+  Booking,
+  apiGetOrCreateThread,
+  apiListMessages,
+  apiSendMessage,
+  ChatMessage,
+} from "@/lib/api";
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: "Pending", color: "border-warning text-warning", icon: Clock },
@@ -52,6 +74,153 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   completed: { label: "Completed", color: "bg-green-600 text-white", icon: CheckCircle },
   cancelled: { label: "Cancelled", color: "bg-destructive text-destructive-foreground", icon: XCircle },
 };
+
+function fmtTime(ts: string) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtDateTime(ts: string) {
+  const d = new Date(ts);
+  return `${d.toLocaleDateString()} • ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+function MessageBubble({ m }: { m: ChatMessage }) {
+  const mine = m.senderRole === "vendor" || m.senderRole === "admin"; // vendor side
+  return (
+    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+      <div
+        className={[
+          "max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm",
+          mine ? "bg-primary text-primary-foreground" : "bg-muted",
+        ].join(" ")}
+      >
+        <div className="whitespace-pre-wrap">{m.text}</div>
+        <div className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+          {fmtTime(m.createdAt)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatDialog({
+  open,
+  onOpenChange,
+  booking,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  booking: Booking | null;
+}) {
+  const { toast } = useToast();
+  const [threadId, setThreadId] = useState<string>("");
+  const [items, setItems] = useState<ChatMessage[]>([]);
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const load = async () => {
+    if (!booking?._id) return;
+    try {
+      setLoading(true);
+      const thread = await apiGetOrCreateThread(booking._id);
+      setThreadId(thread._id);
+      const msgs = await apiListMessages(thread._id);
+      setItems(msgs);
+    } catch (e: any) {
+      toast({ title: "Chat error", description: e?.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, booking?._id]);
+
+  const send = async () => {
+    if (!threadId || !text.trim()) return;
+    try {
+      setSending(true);
+      const msg = await apiSendMessage(threadId, text.trim());
+      setItems((p) => [...p, msg]);
+      setText("");
+    } catch (e: any) {
+      toast({ title: "Send failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Chat with Customer
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-2">
+          <div className="rounded-lg border bg-background">
+            <div className="flex items-center justify-between border-b px-3 py-2">
+              <div className="text-sm">
+                <span className="font-medium">{booking?.user?.name || "Customer"}</span>
+                <span className="text-muted-foreground"> • {booking?.service?.name || "Service"}</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
+                <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
+
+            <div className="h-[340px] overflow-auto p-3 space-y-2">
+              {loading ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">Loading chat…</div>
+              ) : items.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  No messages yet. Say hi 👋
+                </div>
+              ) : (
+                items.map((m) => <MessageBubble key={m._id} m={m} />)
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="flex gap-2">
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type a message…"
+              className="min-h-[44px] resize-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+            />
+            <Button onClick={send} disabled={sending || !text.trim()}>
+              <Send className="mr-2 h-4 w-4" />
+              Send
+            </Button>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 const VendorBookings = () => {
   const { toast } = useToast();
@@ -62,6 +231,8 @@ const VendorBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [newStatus, setNewStatus] = useState("");
 
@@ -104,6 +275,11 @@ const VendorBookings = () => {
     setUpdateModalOpen(true);
   };
 
+  const openChat = (b: Booking) => {
+    setSelectedBooking(b);
+    setChatOpen(true);
+  };
+
   const saveStatus = async () => {
     if (!selectedBooking?._id) return;
     try {
@@ -117,7 +293,8 @@ const VendorBookings = () => {
   };
 
   const renderStatus = (status: string) => {
-    const cfg = statusConfig[status] || { label: status, color: "border-muted text-muted-foreground", icon: Clock };
+    const cfg =
+      statusConfig[status] || { label: status, color: "border-muted text-muted-foreground", icon: Clock };
     const Icon = cfg.icon;
     return (
       <Badge variant={status === "accepted" || status === "completed" ? "default" : "outline"} className={cfg.color}>
@@ -134,6 +311,7 @@ const VendorBookings = () => {
           <CardHeader>
             <CardTitle>Bookings</CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="relative w-full md:max-w-md">
@@ -194,6 +372,7 @@ const VendorBookings = () => {
                           </TableCell>
                         </TableRow>
                       ) : (
+<<<<<<< HEAD
                         filteredBookings.map((b) => {
                           const date = new Date(b.scheduledAt);
                           return (
@@ -234,6 +413,40 @@ const VendorBookings = () => {
                             </TableRow>
                           );
                         })
+=======
+                        filteredBookings.map((b) => (
+                          <TableRow key={b._id}>
+                            <TableCell className="font-medium">{b.service?.name || "Service"}</TableCell>
+                            <TableCell>{b.user?.name || "Customer"}</TableCell>
+                            <TableCell>{fmtDateTime(b.scheduledAt)}</TableCell>
+                            <TableCell>{renderStatus(b.status)}</TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => openView(b)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem onClick={() => openChat(b)}>
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Chat
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem onClick={() => openUpdate(b)}>
+                                    Update Status
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+>>>>>>> 73ab25727ee0b368cfec7799a1c5439700f5a4cb
                       )}
                     </TableBody>
                   </Table>
@@ -252,16 +465,42 @@ const VendorBookings = () => {
 
             {selectedBooking && (
               <div className="space-y-2 text-sm">
+<<<<<<< HEAD
                 <div><strong>Service:</strong> {selectedBooking.service?.name}</div>
                 <div><strong>Customer:</strong> {selectedBooking.user?.name} ({selectedBooking.user?.phone})</div>
                 <div><strong>Address:</strong> {selectedBooking.address}</div>
                 <div><strong>Status:</strong> {selectedBooking.status}</div>
                 <div><strong>Total:</strong> ₹{selectedBooking.amount}</div>
+=======
+                <div>
+                  <strong>Service:</strong> {selectedBooking.service?.name}
+                </div>
+                <div>
+                  <strong>Customer:</strong> {selectedBooking.user?.name} ({selectedBooking.user?.phone})
+                </div>
+                <div>
+                  <strong>Address:</strong> {selectedBooking.address}
+                </div>
+                <div>
+                  <strong>Status:</strong> {renderStatus(selectedBooking.status)}
+                </div>
+                <div>
+                  <strong>Total:</strong> ₹{selectedBooking.totalPrice}
+                </div>
+>>>>>>> 73ab25727ee0b368cfec7799a1c5439700f5a4cb
               </div>
             )}
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewModalOpen(false)}>Close</Button>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setViewModalOpen(false)}>
+                Close
+              </Button>
+              {selectedBooking && (
+                <Button onClick={() => openChat(selectedBooking)}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Chat
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -288,11 +527,16 @@ const VendorBookings = () => {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setUpdateModalOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setUpdateModalOpen(false)}>
+                Cancel
+              </Button>
               <Button onClick={saveStatus}>Save</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Chat Modal */}
+        <ChatDialog open={chatOpen} onOpenChange={setChatOpen} booking={selectedBooking} />
       </div>
     </VendorLayout>
   );
